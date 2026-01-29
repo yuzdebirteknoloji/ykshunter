@@ -60,7 +60,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       })
       .catch(() => {})
   }, [mounted])
-  }, [mounted])
 
   const handleLogout = async () => {
     // Mobilde sidebar'ı kapat
