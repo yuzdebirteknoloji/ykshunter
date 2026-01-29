@@ -21,33 +21,6 @@ export default function TopicsPage() {
     loadData()
   }, [])
 
-  const handleInstall = async () => {
-    if (deferredPrompt) {
-      try {
-        await deferredPrompt.prompt()
-        const { outcome } = await deferredPrompt.userChoice
-        
-        if (outcome === 'accepted') {
-          setShowInstallButton(false)
-          toast.success('Uygulama başarıyla yüklendi!')
-        } else {
-          toast.info('Kurulum iptal edildi')
-        }
-        
-        setDeferredPrompt(null)
-      } catch (error) {
-        console.error('Install error:', error)
-        toast.error('Kurulum sırasında bir hata oluştu')
-      }
-    } else {
-      router.push('/settings')
-    }
-  }
-
-  useEffect(() => {
-    loadData()
-  }, [])
-
   const loadData = async () => {
     try {
       const subjectsData = await getSubjects()
