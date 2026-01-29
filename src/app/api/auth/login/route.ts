@@ -2,13 +2,13 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase'
 
-const MASTER_PASSWORD = 'ybtpassword'
-
 export async function POST(request: Request) {
   try {
     const { password } = await request.json()
 
-    // Master password kontrolü
+    // Master password kontrolü - .env'den al
+    const MASTER_PASSWORD = process.env.MASTER_PASSWORD || 'defaultpassword'
+    
     if (password !== MASTER_PASSWORD) {
       return NextResponse.json(
         { error: 'Şifre yanlış' },
