@@ -4,16 +4,11 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Play, Download, Smartphone } from 'lucide-react'
+import { ArrowLeft, Play } from 'lucide-react'
 import { getSubjects, getTopicsBySubject, type Subject, type Topic } from '@/lib/supabase'
 import { LoadingGrid, LoadingSpinner } from '@/components/loading-card'
 import { EmptyState } from '@/components/empty-state'
 import { toast } from 'sonner'
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
-}
 
 export default function TopicsPage() {
   const router = useRouter()
@@ -21,32 +16,9 @@ export default function TopicsPage() {
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
   const [topics, setTopics] = useState<Topic[]>([])
   const [loading, setLoading] = useState(true)
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
-  const [showInstallButton, setShowInstallButton] = useState(false)
 
   useEffect(() => {
     loadData()
-    
-    // Install prompt'u dinle
-    const handler = (e: Event) => {
-      e.preventDefault()
-      setDeferredPrompt(e as BeforeInstallPromptEvent)
-      setShowInstallButton(true)
-    }
-
-    window.addEventListener('beforeinstallprompt', handler)
-
-    // Standalone kontrolü
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                        (window.navigator as any).standalone === true
-    
-    if (!isStandalone) {
-      setShowInstallButton(true)
-    }
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handler)
-    }
   }, [])
 
   const handleInstall = async () => {
@@ -117,24 +89,6 @@ export default function TopicsPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto p-4 md:p-6 lg:p-10">
-        {/* Install Button */}
-        {showInstallButton && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
-          >
-            <button
-              onClick={handleInstall}
-              className="w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-[1.01] flex items-center justify-center gap-3"
-            >
-              <Download className="w-5 h-5" />
-              <span>Uygulamayı İndir</span>
-              <Smartphone className="w-5 h-5" />
-            </button>
-          </motion.div>
-        )}
-
         {/* Header */}
         <div className="mb-6 md:mb-8">
           <button

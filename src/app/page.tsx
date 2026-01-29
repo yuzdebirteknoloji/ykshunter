@@ -9,19 +9,12 @@ import {
   Star,
   TrendingUp,
   Play,
-  ChevronRight,
-  Download,
-  Smartphone
+  ChevronRight
 } from 'lucide-react'
 import { getSubjects, type Subject } from '@/lib/supabase'
 import { LoadingGrid } from '@/components/loading-card'
 import { EmptyState } from '@/components/empty-state'
 import { toast } from 'sonner'
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
-}
 
 const stats = {
   totalXP: 0,
@@ -33,33 +26,10 @@ export default function HomePage() {
   const [user, setUser] = useState<any>(null)
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [loading, setLoading] = useState(true)
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
-  const [showInstallButton, setShowInstallButton] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
     loadData()
-    
-    // Install prompt'u dinle
-    const handler = (e: Event) => {
-      e.preventDefault()
-      setDeferredPrompt(e as BeforeInstallPromptEvent)
-      setShowInstallButton(true)
-    }
-
-    window.addEventListener('beforeinstallprompt', handler)
-
-    // Standalone kontrolü
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                        (window.navigator as any).standalone === true
-    
-    if (!isStandalone) {
-      setShowInstallButton(true)
-    }
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handler)
-    }
   }, [])
 
   const handleInstall = async () => {
@@ -113,29 +83,6 @@ export default function HomePage() {
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="p-6 md:p-10">
-        {/* Install Button - Büyük ve Göze Çarpan */}
-        {showInstallButton && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
-          >
-            <button
-              onClick={handleInstall}
-              className="w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 text-white font-bold py-6 px-8 rounded-2xl transition-all duration-300 shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] flex items-center justify-center gap-4"
-            >
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                <Download className="w-7 h-7" />
-              </div>
-              <div className="text-left">
-                <div className="text-xl font-bold">Uygulamayı İndir</div>
-                <div className="text-sm opacity-90">Masaüstü veya mobil cihazına yükle</div>
-              </div>
-              <Smartphone className="w-8 h-8 ml-auto" />
-            </button>
-          </motion.div>
-        )}
-
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <motion.div
