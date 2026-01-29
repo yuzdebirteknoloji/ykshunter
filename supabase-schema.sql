@@ -139,6 +139,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger: Oyun sonucu kaydedildiğinde
+DROP TRIGGER IF EXISTS on_game_result_insert ON game_results;
 CREATE TRIGGER on_game_result_insert
 AFTER INSERT ON game_results
 FOR EACH ROW
@@ -178,6 +179,7 @@ $$ LANGUAGE plpgsql;
 -- ============================================
 
 -- Kullanıcı Leaderboard
+DROP VIEW IF EXISTS leaderboard;
 CREATE VIEW leaderboard AS
 SELECT 
   u.id,
@@ -194,6 +196,7 @@ GROUP BY u.id
 ORDER BY u.total_xp DESC;
 
 -- Kullanıcı Detaylı İstatistikler
+DROP VIEW IF EXISTS user_detailed_stats;
 CREATE VIEW user_detailed_stats AS
 SELECT 
   u.id as user_id,
@@ -220,7 +223,8 @@ GROUP BY u.id;
 INSERT INTO users (username, password_hash, display_name, total_xp, level) VALUES
 ('ahmet', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Ahmet Yılmaz', 250, 3),
 ('ayse', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Ayşe Demir', 180, 2),
-('mehmet', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Mehmet Kaya', 420, 5);
+('mehmet', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Mehmet Kaya', 420, 5)
+ON CONFLICT (username) DO NOTHING;
 
 -- ============================================
 -- DUYURU SİSTEMİ
@@ -257,6 +261,7 @@ CREATE INDEX IF NOT EXISTS idx_user_announcement_views_user ON user_announcement
 CREATE INDEX IF NOT EXISTS idx_user_announcement_views_announcement ON user_announcement_views(announcement_id);
 
 -- Aktif duyuruları getir (kullanıcı görmemiş olanlar)
+DROP VIEW IF EXISTS active_announcements;
 CREATE VIEW active_announcements AS
 SELECT 
   a.*,

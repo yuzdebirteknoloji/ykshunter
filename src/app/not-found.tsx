@@ -66,7 +66,7 @@ export default function NotFound() {
         >
           <p>
             Sorun devam ederse{' '}
-            <Link href="/admin" className="text-blue-500 hover:text-blue-400 hover:underline font-medium transition-colors">
+            <Link href="/dashboard" className="text-blue-500 hover:text-blue-400 hover:underline font-medium transition-colors">
               destek
             </Link>
             {' '}ile iletişime geçebilirsiniz.

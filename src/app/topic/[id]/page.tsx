@@ -144,7 +144,7 @@ export default function TopicDetailPage() {
               Bu konu için henüz oyun eklenmemiş.
             </p>
             <button
-              onClick={() => router.push('/admin')}
+              onClick={() => router.push('/dashboard')}
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors text-sm md:text-base"
             >
               Admin Paneline Git

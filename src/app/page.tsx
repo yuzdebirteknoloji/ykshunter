@@ -207,7 +207,7 @@ export default function HomePage() {
             description="İlk dersini ekleyerek öğrenme yolculuğuna başla!"
             action={
               <Link
-                href="/admin"
+                href="/dashboard"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors font-medium"
               >
                 Admin Paneline Git

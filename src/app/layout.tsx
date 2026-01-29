@@ -3,14 +3,14 @@
 import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Sidebar, SidebarBody, SidebarLink } from '@/components/ui/sidebar'
-import { Home, Gamepad2, Settings, User, Moon, Sun, LogOut, Download } from 'lucide-react'
+import { Home, Gamepad2, Settings, User, Moon, Sun, LogOut, LayoutDashboard } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { PWAInstallPrompt } from '@/components/pwa-install-prompt'
 import { PWAUpdatePrompt } from '@/components/pwa-update-prompt'
 import { OfflineIndicator } from '@/components/offline-indicator'
+import { AnnouncementsDisplay } from '@/components/announcements-display'
 import { Toaster } from 'sonner'
 
 const links = [
@@ -25,9 +25,9 @@ const links = [
     icon: <Gamepad2 className="text-foreground h-5 w-5 flex-shrink-0" />,
   },
   {
-    label: 'Admin',
-    href: '/admin',
-    icon: <Settings className="text-foreground h-5 w-5 flex-shrink-0" />,
+    label: 'Dashboard',
+    href: '/dashboard',
+    icon: <LayoutDashboard className="text-foreground h-5 w-5 flex-shrink-0" />,
   },
   {
     label: 'Ayarlar',
@@ -42,7 +42,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const { theme, setTheme } = useTheme()
   const router = useRouter()
-  const [showInstallButton, setShowInstallButton] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -60,14 +59,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         }
       })
       .catch(() => {})
-
-    // Kurulum durumunu kontrol et
-    const standalone = window.matchMedia('(display-mode: standalone)').matches || 
-                      (window.navigator as any).standalone === true
-    
-    if (!standalone) {
-      setShowInstallButton(true)
-    }
+  }, [mounted])
   }, [mounted])
 
   const handleLogout = async () => {
@@ -132,6 +124,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                   <SidebarLink key={idx} link={link} />
                 ))}
               </div>
+
+              {/* Announcements */}
+              <AnnouncementsDisplay open={open} />
             </div>
             
             {/* Bottom Section */}
@@ -170,17 +165,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                 </button>
               )}
 
-              {/* Install Button */}
-              {showInstallButton && (
-                <button
-                  onClick={() => router.push('/settings')}
-                  className="flex items-center gap-2 py-2 px-2 text-muted-foreground hover:text-indigo-500 hover:bg-accent rounded-md transition-colors"
-                >
-                  <Download className="h-5 w-5 flex-shrink-0" />
-                  {open && <span className="text-sm">Uygulamayı Yükle</span>}
-                </button>
-              )}
-
               {/* Logout Button */}
               <button
                 onClick={handleLogout}
@@ -198,7 +182,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       </div>
       {mounted && (
         <>
-          <PWAInstallPrompt />
           <PWAUpdatePrompt />
           <OfflineIndicator />
         </>

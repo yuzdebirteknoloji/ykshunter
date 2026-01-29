@@ -7,11 +7,7 @@
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#6366f1",
-  "orientation": "portrait-primary",
-  "categories": ["education", "games", "productivity"],
-  "lang": "tr",
-  "dir": "ltr",
-  "prefer_related_applications": false,
+  "orientation": "portrait",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -43,34 +39,15 @@
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "form_factor": "narrow"
+      "form_factor": "narrow",
+      "label": "Giriş Ekranı"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "form_factor": "wide"
+      "form_factor": "wide",
+      "label": "Giriş Ekranı Masaüstü"
     }
-  ],
-  "shortcuts": [
-    {
-      "name": "Oyunlar",
-      "short_name": "Oyunlar",
-      "description": "Tüm oyunları görüntüle",
-      "url": "/games",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Admin Panel",
-      "short_name": "Admin",
-      "description": "Yönetim paneli",
-      "url": "/admin",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    }
-  ],
-  "share_target": {
-    "action": "/",
-    "method": "GET",
-    "enctype": "application/x-www-form-urlencoded"
-  }
+  ]
 }

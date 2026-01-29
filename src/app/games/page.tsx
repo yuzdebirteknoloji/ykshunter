@@ -186,7 +186,7 @@ export default function TopicsPage() {
               Bu ders için henüz konu eklenmemiş.
             </p>
             <Link
-              href="/admin"
+              href="/dashboard"
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors text-sm md:text-base"
             >
               Admin Paneline Git
