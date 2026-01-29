@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Download, Smartphone, Wifi, WifiOff, RefreshCw, Trash2, HardDrive, Monitor, Apple } from 'lucide-react'
 import { usePWA } from '@/hooks/use-pwa'
 import { motion } from 'framer-motion'
+import { toast } from 'sonner'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -73,8 +74,8 @@ export default function SettingsPage() {
       const names = await caches.keys()
       await Promise.all(names.map((name) => caches.delete(name)))
       setCacheSize(0)
-      alert('Önbellek temizlendi!')
-      window.location.reload()
+      toast.success('Önbellek başarıyla temizlendi!')
+      setTimeout(() => window.location.reload(), 1000)
     }
   }
 
@@ -82,13 +83,13 @@ export default function SettingsPage() {
     if ('serviceWorker' in navigator) {
       const registration = await navigator.serviceWorker.ready
       await registration.update()
-      alert('Güncelleme kontrol ediliyor...')
+      toast.success('Güncelleme kontrol ediliyor...')
     }
   }
 
   const handleInstall = async () => {
     if (!deferredPrompt) {
-      alert('Kurulum şu anda mevcut değil. Lütfen tarayıcınızın adres çubuğundaki yükleme simgesini kontrol edin.')
+      toast.error('Kurulum şu anda mevcut değil. Lütfen tarayıcınızın adres çubuğundaki yükleme simgesini kontrol edin.')
       return
     }
 
@@ -97,14 +98,16 @@ export default function SettingsPage() {
       const { outcome } = await deferredPrompt.userChoice
       
       if (outcome === 'accepted') {
-        console.log('PWA kurulumu kabul edildi')
+        toast.success('Uygulama başarıyla yüklendi!')
         setCanInstall(false)
+      } else {
+        toast.info('Kurulum iptal edildi')
       }
       
       setDeferredPrompt(null)
     } catch (error) {
       console.error('Kurulum hatası:', error)
-      alert('Kurulum sırasında bir hata oluştu')
+      toast.error('Kurulum sırasında bir hata oluştu')
     }
   }
 

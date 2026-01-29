@@ -223,6 +223,53 @@ INSERT INTO users (username, password_hash, display_name, total_xp, level) VALUE
 ('mehmet', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Mehmet Kaya', 420, 5);
 
 -- ============================================
+-- DUYURU SİSTEMİ
+-- ============================================
+
+-- Duyurular Tablosu
+CREATE TABLE announcements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  type TEXT DEFAULT 'info', -- 'info', 'success', 'warning', 'update'
+  icon TEXT DEFAULT '📢',
+  is_active BOOLEAN DEFAULT TRUE,
+  priority INTEGER DEFAULT 0, -- Yüksek öncelik üstte gösterilir
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  expires_at TIMESTAMPTZ, -- NULL ise süresiz
+  
+  CONSTRAINT valid_type CHECK (type IN ('info', 'success', 'warning', 'update'))
+);
+
+-- Kullanıcı Duyuru Görüntüleme
+CREATE TABLE user_announcement_views (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  announcement_id UUID REFERENCES announcements(id) ON DELETE CASCADE,
+  viewed_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  UNIQUE(user_id, announcement_id)
+);
+
+-- İndeksler
+CREATE INDEX idx_announcements_active ON announcements(is_active, priority DESC, created_at DESC);
+CREATE INDEX idx_user_announcement_views_user ON user_announcement_views(user_id);
+CREATE INDEX idx_user_announcement_views_announcement ON user_announcement_views(announcement_id);
+
+-- Aktif duyuruları getir (kullanıcı görmemiş olanlar)
+CREATE VIEW active_announcements AS
+SELECT 
+  a.*,
+  COUNT(uav.id) as view_count
+FROM announcements a
+LEFT JOIN user_announcement_views uav ON a.id = uav.announcement_id
+WHERE 
+  a.is_active = TRUE 
+  AND (a.expires_at IS NULL OR a.expires_at > NOW())
+GROUP BY a.id
+ORDER BY a.priority DESC, a.created_at DESC;
+
+-- ============================================
 -- NOTLAR
 -- ============================================
 

@@ -6,7 +6,6 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { 
   Flame,
-  Zap,
   Star,
   TrendingUp,
   Play,
@@ -15,6 +14,9 @@ import {
   Smartphone
 } from 'lucide-react'
 import { getSubjects, type Subject } from '@/lib/supabase'
+import { LoadingGrid } from '@/components/loading-card'
+import { EmptyState } from '@/components/empty-state'
+import { toast } from 'sonner'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -68,11 +70,15 @@ export default function HomePage() {
         
         if (outcome === 'accepted') {
           setShowInstallButton(false)
+          toast.success('Uygulama başarıyla yüklendi!')
+        } else {
+          toast.info('Kurulum iptal edildi')
         }
         
         setDeferredPrompt(null)
       } catch (error) {
         console.error('Install error:', error)
+        toast.error('Kurulum sırasında bir hata oluştu')
       }
     } else {
       // Fallback: Ayarlar sayfasına yönlendir
@@ -98,6 +104,7 @@ export default function HomePage() {
       setSubjects(subjectsData)
     } catch (error) {
       console.error('Error loading data:', error)
+      toast.error('Veriler yüklenirken bir hata oluştu')
     } finally {
       setLoading(false)
     }
@@ -192,21 +199,21 @@ export default function HomePage() {
         </div>
 
         {loading ? (
-          <div className="text-center text-muted-foreground py-12">
-            Yükleniyor...
-          </div>
+          <LoadingGrid count={6} />
         ) : subjects.length === 0 ? (
-          <div className="text-center py-12 bg-card rounded-lg border border-border">
-            <p className="text-muted-foreground mb-4">
-              Henüz ders eklenmemiş.
-            </p>
-            <Link
-              href="/admin"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors"
-            >
-              Admin Paneline Git
-            </Link>
-          </div>
+          <EmptyState
+            icon="📚"
+            title="Henüz ders eklenmemiş"
+            description="İlk dersini ekleyerek öğrenme yolculuğuna başla!"
+            action={
+              <Link
+                href="/admin"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors font-medium"
+              >
+                Admin Paneline Git
+              </Link>
+            }
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {subjects.slice(0, 6).map((subject: Subject, index: number) => (

@@ -11,6 +11,7 @@ import { motion } from 'framer-motion'
 import { PWAInstallPrompt } from '@/components/pwa-install-prompt'
 import { PWAUpdatePrompt } from '@/components/pwa-update-prompt'
 import { OfflineIndicator } from '@/components/offline-indicator'
+import { Toaster } from 'sonner'
 
 const links = [
   {
@@ -255,6 +256,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <LayoutContent>{children}</LayoutContent>
+          <Toaster position="top-right" richColors closeButton />
         </ThemeProvider>
       </body>
     </html>

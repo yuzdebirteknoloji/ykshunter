@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Play, Download, Smartphone } from 'lucide-react'
 import { getSubjects, getTopicsBySubject, type Subject, type Topic } from '@/lib/supabase'
+import { LoadingGrid, LoadingSpinner } from '@/components/loading-card'
+import { EmptyState } from '@/components/empty-state'
+import { toast } from 'sonner'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -54,11 +57,15 @@ export default function TopicsPage() {
         
         if (outcome === 'accepted') {
           setShowInstallButton(false)
+          toast.success('Uygulama başarıyla yüklendi!')
+        } else {
+          toast.info('Kurulum iptal edildi')
         }
         
         setDeferredPrompt(null)
       } catch (error) {
         console.error('Install error:', error)
+        toast.error('Kurulum sırasında bir hata oluştu')
       }
     } else {
       router.push('/settings')
