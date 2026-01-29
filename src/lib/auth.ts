@@ -10,7 +10,7 @@ export interface User {
 }
 
 // Basit session yönetimi (cookie-based)
-const SESSION_COOKIE_NAME = 'user_session'
+const SESSION_COOKIE_NAME = 'session'
 
 export async function setUserSession(user: User, rememberMe: boolean = false) {
   const cookieStore = await cookies()

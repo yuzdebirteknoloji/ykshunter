@@ -13,7 +13,7 @@ export function middleware(request: NextRequest) {
   }
   
   // Session cookie'sini kontrol et
-  const session = request.cookies.get('user_session')
+  const session = request.cookies.get('session')
   
   // Session yoksa login'e yönlendir
   if (!session) {
