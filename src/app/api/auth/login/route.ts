@@ -1,76 +1,61 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase'
-import { setUserSession } from '@/lib/auth'
-import bcrypt from 'bcryptjs'
 
-export async function POST(request: NextRequest) {
+const MASTER_PASSWORD = 'ybtpassword'
+
+export async function POST(request: Request) {
   try {
-    const { username, password, rememberMe } = await request.json()
+    const { password } = await request.json()
 
-    if (!username || !password) {
+    // Master password kontrolü
+    if (password !== MASTER_PASSWORD) {
       return NextResponse.json(
-        { error: 'Kullanıcı adı ve şifre gerekli' },
-        { status: 400 }
+        { error: 'Şifre yanlış' },
+        { status: 401 }
       )
     }
 
+    // Supabase'den ilk kullanıcıyı al (veya default user)
     const supabase = createClient()
-
-    // Kullanıcıyı bul
-    const { data: user, error } = await supabase
+    const { data: users, error } = await supabase
       .from('users')
       .select('*')
-      .eq('username', username)
+      .limit(1)
       .single()
 
-    if (error || !user) {
+    if (error || !users) {
       return NextResponse.json(
-        { error: 'Kullanıcı adı veya şifre hatalı' },
-        { status: 401 }
+        { error: 'Kullanıcı bulunamadı' },
+        { status: 404 }
       )
     }
 
-    // Şifreyi kontrol et
-    const isValid = await bcrypt.compare(password, user.password_hash)
-
-    if (!isValid) {
-      return NextResponse.json(
-        { error: 'Kullanıcı adı veya şifre hatalı' },
-        { status: 401 }
-      )
-    }
-
-    // Last login güncelle
-    await supabase
-      .from('users')
-      .update({ last_login: new Date().toISOString() })
-      .eq('id', user.id)
-
-    // Session oluştur (beni hatırla seçeneği ile)
-    await setUserSession({
-      id: user.id,
-      username: user.username,
-      displayName: user.display_name,
-      totalXp: user.total_xp,
-      level: user.level,
-      streakDays: user.streak_days
-    }, rememberMe || false)
+    // Session cookie oluştur
+    const cookieStore = await cookies()
+    cookieStore.set('session', JSON.stringify({
+      userId: users.id,
+      username: users.username,
+      loggedIn: true
+    }), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 30 // 30 gün
+    })
 
     return NextResponse.json({
       success: true,
       user: {
-        id: user.id,
-        username: user.username,
-        displayName: user.display_name,
-        totalXp: user.total_xp,
-        level: user.level,
-        streakDays: user.streak_days
+        id: users.id,
+        username: users.username,
+        display_name: users.display_name
       }
     })
   } catch (error) {
     console.error('Login error:', error)
     return NextResponse.json(
-      { error: 'Giriş yapılırken bir hata oluştu' },
+      { error: 'Giriş başarısız' },
       { status: 500 }
     )
   }
