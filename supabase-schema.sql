@@ -3,7 +3,7 @@
 -- ============================================
 
 -- Kullanıcılar Tablosu (Basit Auth)
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   username TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL, -- bcrypt hash
@@ -21,7 +21,7 @@ CREATE TABLE users (
 );
 
 -- Oyun Sonuçları
-CREATE TABLE game_results (
+CREATE TABLE IF NOT EXISTS game_results (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   
@@ -43,7 +43,7 @@ CREATE TABLE game_results (
 );
 
 -- Kullanıcı İstatistikleri (Konu Bazlı)
-CREATE TABLE user_topic_stats (
+CREATE TABLE IF NOT EXISTS user_topic_stats (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   topic_id TEXT NOT NULL,
@@ -64,7 +64,7 @@ CREATE TABLE user_topic_stats (
 );
 
 -- Günlük Aktivite (Streak Hesaplama)
-CREATE TABLE daily_activity (
+CREATE TABLE IF NOT EXISTS daily_activity (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   activity_date DATE NOT NULL,
@@ -227,7 +227,7 @@ INSERT INTO users (username, password_hash, display_name, total_xp, level) VALUE
 -- ============================================
 
 -- Duyurular Tablosu
-CREATE TABLE announcements (
+CREATE TABLE IF NOT EXISTS announcements (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
   message TEXT NOT NULL,
@@ -242,7 +242,7 @@ CREATE TABLE announcements (
 );
 
 -- Kullanıcı Duyuru Görüntüleme
-CREATE TABLE user_announcement_views (
+CREATE TABLE IF NOT EXISTS user_announcement_views (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   announcement_id UUID REFERENCES announcements(id) ON DELETE CASCADE,
