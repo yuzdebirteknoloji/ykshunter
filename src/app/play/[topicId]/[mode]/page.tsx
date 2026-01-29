@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft } from 'lucide-react'
 import { GameEngine, GameState, GameMode } from '../../../../../packages/game-engine/src'
-import { getQuestionSetsByTopicAndMode, getTopicById } from '@/lib/supabase'
+import { getQuestionSetsByTopicAndMode, getTopicById, QuestionSet } from '@/lib/supabase'
 
 export default function PlayPage() {
   const params = useParams()
@@ -19,6 +19,8 @@ export default function PlayPage() {
   const [showCorrectAnswers, setShowCorrectAnswers] = useState(false)
   const [loading, setLoading] = useState(true)
   const [questionSetData, setQuestionSetData] = useState<any>(null)
+  const [allQuestionSets, setAllQuestionSets] = useState<QuestionSet[]>([])
+  const [currentSetIndex, setCurrentSetIndex] = useState(0)
 
   useEffect(() => {
     loadGame()
@@ -36,21 +38,24 @@ export default function PlayPage() {
         return
       }
 
-      // Rastgele bir soru seti seç
-      const randomSet = questionSets[Math.floor(Math.random() * questionSets.length)]
-      
       setTopic(topicData)
-      setQuestionSetData(randomSet)
+      setAllQuestionSets(questionSets)
+      
+      // İlk seti seç (veya rastgele birinden başla)
+      const initialIndex = Math.floor(Math.random() * questionSets.length)
+      setCurrentSetIndex(initialIndex)
+      const initialSet = questionSets[initialIndex]
+      setQuestionSetData(initialSet)
       
       // Create game object from database data
       const game = {
         id: `${topicId}-${mode}`,
         title: topicData.name,
         mode: mode,
-        data: randomSet.data
+        data: initialSet.data
       }
       
-      setState(GameEngine.initializeGame(game as any, randomSet.is_random))
+      setState(GameEngine.initializeGame(game as any, initialSet.is_random))
     } catch (error) {
       console.error('Error loading game:', error)
     } finally {
@@ -416,21 +421,27 @@ export default function PlayPage() {
                   </button>
                   <button
                     onClick={() => {
-                      if (questionSetData) {
-                        const game = {
-                          id: `${topicId}-${mode}`,
-                          title: topic.name,
-                          mode: mode,
-                          data: questionSetData.data
-                        }
-                        setState(GameEngine.initializeGame(game as any, questionSetData.is_random))
-                        setShowResult(false)
-                        setShowCorrectAnswers(false)
+                      const nextIndex = (currentSetIndex + 1) % allQuestionSets.length
+                      const nextSet = allQuestionSets[nextIndex]
+                      
+                      const game = {
+                        id: `${topicId}-${mode}`,
+                        title: topic.name,
+                        mode: mode,
+                        data: nextSet.data
                       }
+                      
+                      setQuestionSetData(nextSet)
+                      setCurrentSetIndex(nextIndex)
+                      setState(GameEngine.initializeGame(game as any, nextSet.is_random))
+                      setShowResult(false)
+                      setShowCorrectAnswers(false)
                     }}
                     className="bg-gradient-to-r from-green-600 to-teal-600 text-white py-3 rounded-lg font-semibold hover:from-green-700 hover:to-teal-700 transition-all shadow-lg"
                   >
-                    ↻ Baştan Başla
+                    {allQuestionSets.length > 1 
+                      ? `➡️ Sonraki Set (${currentSetIndex + 1}/${allQuestionSets.length})`
+                      : '🔄 Tekrar Oyna'}
                   </button>
                 </div>
                 <button
