@@ -68,6 +68,9 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion'],
   },
+
+  // Turbopack configuration (empty to silence warning)
+  turbopack: {},
 }
 
 module.exports = withPWA(nextConfig)
