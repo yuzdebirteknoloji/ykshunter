@@ -78,17 +78,17 @@ CREATE TABLE IF NOT EXISTS daily_activity (
 -- İNDEXLER (Performans)
 -- ============================================
 
-CREATE INDEX idx_game_results_user ON game_results(user_id);
-CREATE INDEX idx_game_results_topic ON game_results(topic_id);
-CREATE INDEX idx_game_results_played_at ON game_results(played_at DESC);
+CREATE INDEX IF NOT EXISTS idx_game_results_user ON game_results(user_id);
+CREATE INDEX IF NOT EXISTS idx_game_results_topic ON game_results(topic_id);
+CREATE INDEX IF NOT EXISTS idx_game_results_played_at ON game_results(played_at DESC);
 
-CREATE INDEX idx_user_topic_stats_user ON user_topic_stats(user_id);
-CREATE INDEX idx_user_topic_stats_topic ON user_topic_stats(topic_id);
+CREATE INDEX IF NOT EXISTS idx_user_topic_stats_user ON user_topic_stats(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_topic_stats_topic ON user_topic_stats(topic_id);
 
-CREATE INDEX idx_daily_activity_user ON daily_activity(user_id);
-CREATE INDEX idx_daily_activity_date ON daily_activity(activity_date DESC);
+CREATE INDEX IF NOT EXISTS idx_daily_activity_user ON daily_activity(user_id);
+CREATE INDEX IF NOT EXISTS idx_daily_activity_date ON daily_activity(activity_date DESC);
 
-CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 
 -- ============================================
 -- FUNCTIONS (Otomatik İşlemler)
@@ -252,9 +252,9 @@ CREATE TABLE IF NOT EXISTS user_announcement_views (
 );
 
 -- İndeksler
-CREATE INDEX idx_announcements_active ON announcements(is_active, priority DESC, created_at DESC);
-CREATE INDEX idx_user_announcement_views_user ON user_announcement_views(user_id);
-CREATE INDEX idx_user_announcement_views_announcement ON user_announcement_views(announcement_id);
+CREATE INDEX IF NOT EXISTS idx_announcements_active ON announcements(is_active, priority DESC, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_announcement_views_user ON user_announcement_views(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_announcement_views_announcement ON user_announcement_views(announcement_id);
 
 -- Aktif duyuruları getir (kullanıcı görmemiş olanlar)
 CREATE VIEW active_announcements AS

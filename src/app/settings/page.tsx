@@ -88,8 +88,16 @@ export default function SettingsPage() {
   }
 
   const handleInstall = async () => {
+    if (isIOS) {
+      toast.info('iOS cihazlarda "Paylaş" butonuna basıp "Ana Ekrana Ekle" seçeneğini kullanın.', {
+        duration: 5000,
+        icon: <Apple className="w-5 h-5 text-blue-500" />,
+      })
+      return
+    }
+
     if (!deferredPrompt) {
-      toast.error('Kurulum şu anda mevcut değil. Lütfen tarayıcınızın adres çubuğundaki yükleme simgesini kontrol edin.')
+      toast.error('Kurulum şu anda mevcut değil. Lütfen tarayıcınızın adres çubuğundaki yükleme simgesini kontrol edin veya manuel kurulum adımlarını izleyin.')
       return
     }
 
@@ -150,23 +158,15 @@ export default function SettingsPage() {
                     <h2 className="text-2xl font-bold mb-2">
                       Uygulamayı Yükle
                     </h2>
-                    <p className="text-muted-foreground">
-                      Learn Game'i cihazınıza yükleyin ve uygulama gibi kullanın. 
-                      Daha hızlı erişim, çevrimdışı kullanım ve daha iyi performans.
-                    </p>
+                    <button
+                      onClick={handleInstall}
+                      className="mt-4 w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold rounded-2xl transition-all duration-200 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl active:scale-95 group"
+                    >
+                      <Download className="w-6 h-6 group-hover:bounce" />
+                      Hemen İndir (Web Tabanlı)
+                    </button>
                   </div>
                 </div>
-
-                {/* Desktop Install */}
-                {canInstall && !isIOS && (
-                  <button
-                    onClick={handleInstall}
-                    className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl mb-4"
-                  >
-                    <Monitor className="w-6 h-6" />
-                    Masaüstüne Yükle
-                  </button>
-                )}
 
                 {/* iOS Instructions */}
                 {isIOS && (
@@ -344,20 +344,6 @@ export default function SettingsPage() {
             </div>
           </motion.div>
 
-          {/* Bilgilendirme */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-6"
-          >
-            <h3 className="font-semibold mb-2 text-blue-500">💡 İpucu</h3>
-            <p className="text-sm text-muted-foreground">
-              Uygulamayı cihazınıza yükleyerek daha hızlı erişim sağlayabilir ve çevrimdışı 
-              kullanabilirsiniz. Yükleme için tarayıcınızın adres çubuğundaki yükleme simgesine 
-              tıklayın veya ayarlar menüsünden "Ana ekrana ekle" seçeneğini kullanın.
-            </p>
-          </motion.div>
         </div>
       </div>
     </div>
