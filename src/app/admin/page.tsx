@@ -552,7 +552,7 @@ const QuestionsTab = () => {
             <textarea
               value={jsonData}
               onChange={(e) => setJsonData(e.target.value)}
-              className="w-full h-64 bg-muted border border-border rounded-lg px-4 py-3 text-foreground font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none shadow-sm shadow-inner"
+              className="w-full h-64 bg-muted border border-border rounded-lg px-4 py-3 text-foreground font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none shadow-inner"
               placeholder={exampleData[mode]}
             />
           </div>
