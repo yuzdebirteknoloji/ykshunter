@@ -160,28 +160,7 @@ export default function TopicsPage() {
           </div>
         )}
 
-        {/* Info Box */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-6 md:mt-8 bg-card rounded-lg p-4 md:p-6 border border-border"
-        >
-          <h3 className="text-base md:text-lg font-semibold text-foreground mb-3">
-            💡 Nasıl Çalışır?
-          </h3>
-          <div className="text-xs md:text-sm text-muted-foreground space-y-2">
-            <p>
-              <strong className="text-foreground">1.</strong> Öğrenmek istediğin konuyu seç
-            </p>
-            <p>
-              <strong className="text-foreground">2.</strong> Oyun modunu seç (Eşleştirme, Sıralama veya Gruplama)
-            </p>
-            <p>
-              <strong className="text-foreground">3.</strong> Aynı konuyu farklı şekillerde öğren!
-            </p>
-          </div>
-        </motion.div>
+      
       </div>
     </div>
   )

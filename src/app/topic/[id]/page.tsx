@@ -209,10 +209,7 @@ export default function TopicDetailPage() {
           <h3 className="text-base md:text-lg font-semibold text-foreground mb-3">
             💡 İpucu
           </h3>
-          <p className="text-xs md:text-sm text-muted-foreground">
-            Aynı konuyu 3 farklı şekilde öğrenerek bilgini pekiştir! 
-            Her mod farklı bir öğrenme stiline hitap eder:
-          </p>
+          
           <ul className="mt-3 space-y-2 text-xs md:text-sm text-muted-foreground">
             <li className="flex items-start gap-2">
               <span className="text-blue-400">•</span>
