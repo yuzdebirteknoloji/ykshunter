@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Trash2, Edit2, ChevronDown, ChevronRight } from 'lucide-react'
-import { getSubjects, getTopicsBySubject, getQuestionSetsByTopicAndMode, createClient } from '@/lib/supabase'
+import { getSubjects, getTopicsBySubject, getQuestionSetsByTopicAndMode, getImageGamesByTopic, createClient } from '@/lib/supabase'
 import { toast } from 'sonner'
 
 export function ManagementTab() {
@@ -29,9 +29,11 @@ export function ManagementTab() {
               const matchingSets = await getQuestionSetsByTopicAndMode(topic.id, 'matching')
               const sequenceSets = await getQuestionSetsByTopicAndMode(topic.id, 'sequence')
               const groupingSets = await getQuestionSetsByTopicAndMode(topic.id, 'grouping')
+              const imageGames = await getImageGamesByTopic(topic.id)
               return {
                 ...topic,
-                questionSets: [...matchingSets, ...sequenceSets, ...groupingSets]
+                questionSets: [...matchingSets, ...sequenceSets, ...groupingSets],
+                imageGames: imageGames
               }
             })
           )
@@ -145,6 +147,31 @@ export function ManagementTab() {
     }
   }
 
+  const deleteImageGame = async (gameId: string) => {
+    if (!confirm('Bu görsel oyunu silmek istediğinize emin misiniz?')) {
+      return
+    }
+
+    setDeleting(gameId)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('image_games')
+        .delete()
+        .eq('id', gameId)
+
+      if (error) throw error
+
+      toast.success('Görsel oyunu silindi')
+      loadData()
+    } catch (error: any) {
+      console.error('Error deleting image game:', error)
+      toast.error('Silme başarısız: ' + error.message)
+    } finally {
+      setDeleting(null)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -210,7 +237,7 @@ export function ManagementTab() {
                         <div>
                           <div className="font-medium text-foreground">{topic.name}</div>
                           <div className="text-xs text-muted-foreground">
-                            {topic.questionSets.length} soru seti
+                            {topic.questionSets.length} soru seti • {topic.imageGames?.length || 0} görsel oyun
                           </div>
                         </div>
                       </button>
@@ -248,9 +275,37 @@ export function ManagementTab() {
                             </button>
                           </div>
                         ))}
-                        {topic.questionSets.length === 0 && (
+                        
+                        {/* Image Games */}
+                        {topic.imageGames?.map((game: any) => (
+                          <div
+                            key={game.id}
+                            className="flex items-center justify-between p-2 bg-background rounded border border-border"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs px-2 py-1 bg-pink-500/10 text-pink-500 rounded">
+                                🖼️ görsel
+                              </span>
+                              <span className="text-sm text-foreground">
+                                {game.title}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                ({game.regions?.length || 0} bölge)
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => deleteImageGame(game.id)}
+                              disabled={deleting === game.id}
+                              className="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                        
+                        {topic.questionSets.length === 0 && (!topic.imageGames || topic.imageGames.length === 0) && (
                           <div className="text-xs text-muted-foreground text-center py-2">
-                            Soru seti yok
+                            İçerik yok
                           </div>
                         )}
                       </div>

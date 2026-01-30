@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Play } from 'lucide-react'
-import { getTopicById, getQuestionSetsByTopic, type QuestionSet } from '@/lib/supabase'
+import { getTopicById, getQuestionSetsByTopic, getImageGames, type QuestionSet, type ImageGame } from '@/lib/supabase'
 
 export default function TopicDetailPage() {
   const params = useParams()
@@ -13,6 +13,7 @@ export default function TopicDetailPage() {
 
   const [topic, setTopic] = useState<any>(null)
   const [questionSets, setQuestionSets] = useState<QuestionSet[]>([])
+  const [imageGames, setImageGames] = useState<ImageGame[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -21,13 +22,18 @@ export default function TopicDetailPage() {
 
   const loadData = async () => {
     try {
-      const [topicData, setsData] = await Promise.all([
+      const [topicData, setsData, allImageGames] = await Promise.all([
         getTopicById(topicId),
-        getQuestionSetsByTopic(topicId)
+        getQuestionSetsByTopic(topicId),
+        getImageGames()
       ])
       
       setTopic(topicData)
       setQuestionSets(setsData)
+      
+      // Filter image games for this topic
+      const topicImageGames = allImageGames.filter(g => g.topic_id === topicId)
+      setImageGames(topicImageGames)
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {
@@ -103,6 +109,22 @@ export default function TopicDetailPage() {
     }
   ]
 
+  // Add image games to modes
+  if (imageGames.length > 0) {
+    modes.push({
+      id: 'image',
+      title: 'Görsel Eşleştirme',
+      icon: '🖼️',
+      description: 'Görseldeki bölgeleri etiketle',
+      color: 'from-pink-500 to-rose-600',
+      borderColor: 'border-pink-500/20 hover:border-pink-500/50',
+      bgColor: 'bg-pink-500/10',
+      textColor: 'text-pink-400',
+      itemCount: imageGames.length,
+      available: true
+    } as any)
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto p-4 md:p-6 lg:p-10">
@@ -138,7 +160,7 @@ export default function TopicDetailPage() {
           </h2>
         </div>
 
-        {questionSets.length === 0 ? (
+        {questionSets.length === 0 && imageGames.length === 0 ? (
           <div className="text-center py-12 bg-card rounded-lg border border-border">
             <p className="text-sm md:text-base text-muted-foreground mb-4">
               Bu konu için henüz oyun eklenmemiş.
@@ -158,7 +180,16 @@ export default function TopicDetailPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                onClick={() => mode.available && router.push(`/play/${topicId}/${mode.id}`)}
+                onClick={() => {
+                  if (!mode.available) return
+                  if (mode.id === 'image' && imageGames.length > 0) {
+                    // Rastgele bir görsel oyun seç
+                    const randomGame = imageGames[Math.floor(Math.random() * imageGames.length)]
+                    router.push(`/play-image/${randomGame.id}`)
+                  } else {
+                    router.push(`/play/${topicId}/${mode.id}`)
+                  }
+                }}
                 className={`group bg-card rounded-lg p-4 md:p-6 border ${mode.borderColor} transition-all ${
                   mode.available 
                     ? 'cursor-pointer hover:shadow-md hover:scale-105' 
@@ -223,6 +254,12 @@ export default function TopicDetailPage() {
               <span className="text-green-400">•</span>
               <span><strong className="text-foreground">Gruplama:</strong> Sınıflandırma ve kategorizasyon</span>
             </li>
+            {imageGames.length > 0 && (
+              <li className="flex items-start gap-2">
+                <span className="text-pink-400">•</span>
+                <span><strong className="text-foreground">Görsel Eşleştirme:</strong> Görsel tanıma ve etiketleme</span>
+              </li>
+            )}
           </ul>
         </motion.div>
       </div>

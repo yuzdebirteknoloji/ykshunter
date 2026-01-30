@@ -246,10 +246,12 @@ export async function createQuestionSet(
 export interface ImageGameRegion {
   id: string
   label: string
+  type: 'rectangle' | 'polygon'
   x: number
   y: number
   width: number
   height: number
+  points?: {x: number, y: number}[] // For polygon
 }
 
 export interface ImageGame {
@@ -301,6 +303,17 @@ export async function getImageGameById(id: string) {
 
   if (error) throw error
   return data as ImageGame
+}
+
+export async function getImageGamesByTopic(topicId: string) {
+  const { data, error } = await supabase
+    .from('image_games')
+    .select('*')
+    .eq('topic_id', topicId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data as ImageGame[]
 }
 
 export async function updateImageGame(id: string, updates: Partial<ImageGame>) {

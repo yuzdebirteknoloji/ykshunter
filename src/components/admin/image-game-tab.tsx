@@ -3,7 +3,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { uploadToCloudinary } from '@/lib/cloudinary'
 import { createImageGame, getImageGames, deleteImageGame, getSubjects, getTopicsBySubject, ImageGame, ImageGameRegion } from '@/lib/supabase'
-import { Trash2, Plus, X } from 'lucide-react'
+import { Trash2, Square, Edit3, Pentagon, Move, X, Plus } from 'lucide-react'
+
+type DrawMode = 'rectangle' | 'freehand' | 'polygon'
 
 export function ImageGameTab() {
   const [games, setGames] = useState<ImageGame[]>([])
@@ -20,10 +22,13 @@ export function ImageGameTab() {
   const [regions, setRegions] = useState<ImageGameRegion[]>([])
   
   // Drawing states
+  const [drawMode, setDrawMode] = useState<DrawMode>('rectangle')
   const [isDrawing, setIsDrawing] = useState(false)
   const [startPos, setStartPos] = useState({ x: 0, y: 0 })
-  const [currentRegion, setCurrentRegion] = useState<ImageGameRegion | null>(null)
-  const [newLabel, setNewLabel] = useState('')
+  const [currentRegion, setCurrentRegion] = useState<any>(null)
+  const [polygonPoints, setPolygonPoints] = useState<{x: number, y: number}[]>([])
+  const [freehandPoints, setFreehandPoints] = useState<{x: number, y: number}[]>([])
+  const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null)
   
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
@@ -69,16 +74,21 @@ export function ImageGameTab() {
       const url = await uploadToCloudinary(file)
       setImageUrl(url)
       
-      // Load image to canvas
-      const img = new Image()
-      img.crossOrigin = 'anonymous'
-      img.onload = () => {
-        if (imageRef.current) {
-          imageRef.current.src = url
+      setTimeout(() => {
+        const img = imageRef.current
+        const canvas = canvasRef.current
+        if (img && canvas) {
+          img.onload = () => {
+            const ctx = canvas.getContext('2d')
+            if (ctx) {
+              canvas.width = img.naturalWidth
+              canvas.height = img.naturalHeight
+              ctx.drawImage(img, 0, 0)
+            }
+          }
+          img.src = url
         }
-        drawCanvas()
-      }
-      img.src = url
+      }, 100)
     } catch (error) {
       console.error('Upload error:', error)
       alert('Görsel yüklenemedi')
@@ -90,34 +100,120 @@ export function ImageGameTab() {
   const drawCanvas = () => {
     const canvas = canvasRef.current
     const img = imageRef.current
-    if (!canvas || !img) return
+    if (!canvas || !img || !img.complete) return
 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    canvas.width = img.width
-    canvas.height = img.height
+    if (canvas.width === 0 || canvas.height === 0) {
+      canvas.width = img.naturalWidth || img.width
+      canvas.height = img.naturalHeight || img.height
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
     ctx.drawImage(img, 0, 0)
 
-    // Draw existing regions
-    regions.forEach((region, index) => {
-      ctx.strokeStyle = '#8b5cf6'
-      ctx.lineWidth = 3
-      ctx.strokeRect(region.x, region.y, region.width, region.height)
+    // Draw regions with thinner lines
+    regions.forEach((region) => {
+      const isSelected = selectedRegionId === region.id
       
-      ctx.fillStyle = 'rgba(139, 92, 246, 0.2)'
-      ctx.fillRect(region.x, region.y, region.width, region.height)
-      
-      ctx.fillStyle = '#8b5cf6'
-      ctx.font = 'bold 16px sans-serif'
-      ctx.fillText(region.label, region.x + 5, region.y + 20)
+      if (region.type === 'polygon' && region.points && region.points.length > 0) {
+        // Draw polygon with thin lines
+        ctx.beginPath()
+        ctx.moveTo(region.points[0].x, region.points[0].y)
+        for (let i = 1; i < region.points.length; i++) {
+          ctx.lineTo(region.points[i].x, region.points[i].y)
+        }
+        ctx.closePath()
+        
+        ctx.strokeStyle = isSelected ? '#ec4899' : '#8b5cf6'
+        ctx.lineWidth = isSelected ? 2.5 : 2
+        ctx.stroke()
+        
+        ctx.fillStyle = isSelected ? 'rgba(236, 72, 153, 0.15)' : 'rgba(139, 92, 246, 0.15)'
+        ctx.fill()
+        
+        // Draw label
+        ctx.fillStyle = isSelected ? '#ec4899' : '#8b5cf6'
+        ctx.font = 'bold 14px sans-serif'
+        ctx.fillText(region.label, region.points[0].x + 5, region.points[0].y + 18)
+      } else {
+        // Draw rectangle with thin lines
+        ctx.strokeStyle = isSelected ? '#ec4899' : '#8b5cf6'
+        ctx.lineWidth = isSelected ? 2.5 : 2
+        ctx.strokeRect(region.x, region.y, region.width, region.height)
+        
+        ctx.fillStyle = isSelected ? 'rgba(236, 72, 153, 0.15)' : 'rgba(139, 92, 246, 0.15)'
+        ctx.fillRect(region.x, region.y, region.width, region.height)
+        
+        ctx.fillStyle = isSelected ? '#ec4899' : '#8b5cf6'
+        ctx.font = 'bold 14px sans-serif'
+        ctx.fillText(region.label, region.x + 5, region.y + 18)
+      }
     })
 
-    // Draw current region being drawn
-    if (currentRegion) {
-      ctx.strokeStyle = '#ec4899'
+    // Draw current rectangle
+    if (currentRegion && drawMode === 'rectangle') {
+      ctx.strokeStyle = '#10b981'
       ctx.lineWidth = 3
+      ctx.setLineDash([5, 5])
       ctx.strokeRect(currentRegion.x, currentRegion.y, currentRegion.width, currentRegion.height)
+      ctx.setLineDash([])
+    }
+
+    // Draw polygon points and lines
+    if (drawMode === 'polygon' && polygonPoints.length > 0) {
+      // Draw points
+      ctx.fillStyle = '#10b981'
+      polygonPoints.forEach((point, index) => {
+        ctx.beginPath()
+        ctx.arc(point.x, point.y, 6, 0, Math.PI * 2)
+        ctx.fill()
+        
+        // Draw point number
+        ctx.fillStyle = '#ffffff'
+        ctx.font = 'bold 12px sans-serif'
+        ctx.fillText((index + 1).toString(), point.x - 4, point.y + 4)
+        ctx.fillStyle = '#10b981'
+      })
+      
+      // Draw lines between points
+      if (polygonPoints.length > 1) {
+        ctx.strokeStyle = '#10b981'
+        ctx.lineWidth = 3
+        ctx.setLineDash([5, 5])
+        ctx.beginPath()
+        ctx.moveTo(polygonPoints[0].x, polygonPoints[0].y)
+        for (let i = 1; i < polygonPoints.length; i++) {
+          ctx.lineTo(polygonPoints[i].x, polygonPoints[i].y)
+        }
+        ctx.stroke()
+        ctx.setLineDash([])
+        
+        // Draw closing line preview
+        ctx.strokeStyle = '#10b981'
+        ctx.lineWidth = 2
+        ctx.setLineDash([2, 2])
+        ctx.beginPath()
+        ctx.moveTo(polygonPoints[polygonPoints.length - 1].x, polygonPoints[polygonPoints.length - 1].y)
+        ctx.lineTo(polygonPoints[0].x, polygonPoints[0].y)
+        ctx.stroke()
+        ctx.setLineDash([])
+      }
+    }
+    
+    // Draw freehand path
+    if (drawMode === 'freehand' && freehandPoints.length > 0) {
+      ctx.strokeStyle = '#10b981'
+      ctx.lineWidth = 2
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+      ctx.beginPath()
+      ctx.moveTo(freehandPoints[0].x, freehandPoints[0].y)
+      for (let i = 1; i < freehandPoints.length; i++) {
+        ctx.lineTo(freehandPoints[i].x, freehandPoints[i].y)
+      }
+      ctx.stroke()
     }
   }
 
@@ -126,11 +222,20 @@ export function ImageGameTab() {
     if (!canvas) return
 
     const rect = canvas.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    const x = (e.clientX - rect.left) * scaleX
+    const y = (e.clientY - rect.top) * scaleY
 
-    setIsDrawing(true)
-    setStartPos({ x, y })
+    if (drawMode === 'rectangle') {
+      setIsDrawing(true)
+      setStartPos({ x, y })
+    } else if (drawMode === 'polygon') {
+      setPolygonPoints([...polygonPoints, { x, y }])
+    } else if (drawMode === 'freehand') {
+      setIsDrawing(true)
+      setFreehandPoints([{ x, y }])
+    }
   }
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -140,41 +245,111 @@ export function ImageGameTab() {
     if (!canvas) return
 
     const rect = canvas.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    const x = (e.clientX - rect.left) * scaleX
+    const y = (e.clientY - rect.top) * scaleY
 
-    const width = x - startPos.x
-    const height = y - startPos.y
+    if (drawMode === 'rectangle') {
+      const width = x - startPos.x
+      const height = y - startPos.y
 
-    setCurrentRegion({
-      id: Date.now().toString(),
-      label: '',
-      x: startPos.x,
-      y: startPos.y,
-      width,
-      height
-    })
+      setCurrentRegion({
+        id: Date.now().toString(),
+        label: '',
+        x: startPos.x,
+        y: startPos.y,
+        width,
+        height
+      })
+    } else if (drawMode === 'freehand') {
+      setFreehandPoints([...freehandPoints, { x, y }])
+    }
 
     drawCanvas()
   }
 
   const handleMouseUp = () => {
-    if (!isDrawing || !currentRegion) return
-
+    if (!isDrawing) return
     setIsDrawing(false)
     
-    // Prompt for label
-    const label = prompt('Bu bölge için etiket girin:')
-    if (label) {
-      setRegions([...regions, { ...currentRegion, label }])
+    if (drawMode === 'rectangle' && currentRegion) {
+      const newRegion = { 
+        ...currentRegion, 
+        label: `Bölge ${regions.length + 1}`,
+        type: 'rectangle' as const
+      }
+      setRegions([...regions, newRegion])
+      setCurrentRegion(null)
+      setSelectedRegionId(newRegion.id)
+    } else if (drawMode === 'freehand' && freehandPoints.length > 10) {
+      // Convert freehand to polygon
+      const xs = freehandPoints.map(p => p.x)
+      const ys = freehandPoints.map(p => p.y)
+      const minX = Math.min(...xs)
+      const maxX = Math.max(...xs)
+      const minY = Math.min(...ys)
+      const maxY = Math.max(...ys)
+
+      const newRegion: ImageGameRegion = {
+        id: Date.now().toString(),
+        label: `Bölge ${regions.length + 1}`,
+        type: 'polygon',
+        x: minX,
+        y: minY,
+        width: maxX - minX,
+        height: maxY - minY,
+        points: freehandPoints
+      }
+
+      setRegions([...regions, newRegion])
+      setFreehandPoints([])
+      setSelectedRegionId(newRegion.id)
+    } else {
+      setFreehandPoints([])
     }
     
-    setCurrentRegion(null)
     drawCanvas()
+  }
+
+  const finishPolygon = () => {
+    if (polygonPoints.length < 3) {
+      alert('En az 3 nokta seçmelisiniz')
+      return
+    }
+
+    // Calculate bounding box for storage
+    const xs = polygonPoints.map(p => p.x)
+    const ys = polygonPoints.map(p => p.y)
+    const minX = Math.min(...xs)
+    const maxX = Math.max(...xs)
+    const minY = Math.min(...ys)
+    const maxY = Math.max(...ys)
+
+    const newRegion: ImageGameRegion = {
+      id: Date.now().toString(),
+      label: `Bölge ${regions.length + 1}`,
+      type: 'polygon',
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+      points: polygonPoints // Store actual polygon points
+    }
+
+    setRegions([...regions, newRegion])
+    setPolygonPoints([])
+    setSelectedRegionId(newRegion.id)
+    drawCanvas()
+  }
+
+  const updateRegionLabel = (id: string, label: string) => {
+    setRegions(regions.map(r => r.id === id ? { ...r, label } : r))
   }
 
   const removeRegion = (id: string) => {
     setRegions(regions.filter(r => r.id !== id))
+    if (selectedRegionId === id) setSelectedRegionId(null)
     setTimeout(drawCanvas, 0)
   }
 
@@ -197,7 +372,6 @@ export function ImageGameTab() {
 
       alert('Görsel oyun oluşturuldu!')
       
-      // Reset form
       setTitle('')
       setDescription('')
       setSelectedSubject('')
@@ -228,7 +402,7 @@ export function ImageGameTab() {
 
   useEffect(() => {
     drawCanvas()
-  }, [regions, currentRegion])
+  }, [regions, currentRegion, polygonPoints, selectedRegionId])
 
   return (
     <div className="space-y-6">
@@ -237,11 +411,11 @@ export function ImageGameTab() {
         <p className="text-sm text-muted-foreground">Görsel yükle, bölgeleri işaretle ve etiketle</p>
       </div>
 
-      {/* Create Form */}
+      {/* Basic Info */}
       <div className="bg-card border rounded-lg p-6 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Oyun Başlığı</label>
+            <label className="block text-sm font-medium mb-2">Oyun Başlığı *</label>
             <input
               type="text"
               value={title}
@@ -252,7 +426,7 @@ export function ImageGameTab() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Açıklama (Opsiyonel)</label>
+            <label className="block text-sm font-medium mb-2">Açıklama</label>
             <input
               type="text"
               value={description}
@@ -263,7 +437,7 @@ export function ImageGameTab() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Ders (Opsiyonel)</label>
+            <label className="block text-sm font-medium mb-2">Ders</label>
             <select
               value={selectedSubject}
               onChange={(e) => setSelectedSubject(e.target.value)}
@@ -277,7 +451,7 @@ export function ImageGameTab() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Konu (Opsiyonel)</label>
+            <label className="block text-sm font-medium mb-2">Konu</label>
             <select
               value={selectedTopic}
               onChange={(e) => setSelectedTopic(e.target.value)}
@@ -293,7 +467,7 @@ export function ImageGameTab() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Görsel Yükle</label>
+          <label className="block text-sm font-medium mb-2">Görsel Yükle *</label>
           <input
             type="file"
             accept="image/*"
@@ -301,71 +475,170 @@ export function ImageGameTab() {
             className="w-full px-3 py-2 border rounded-lg bg-background"
           />
         </div>
+      </div>
 
-        {imageUrl && (
-          <div className="space-y-4">
-            <div className="border rounded-lg p-4 bg-muted">
-              <p className="text-sm font-medium mb-2">Bölgeleri Çiz (Fare ile sürükle)</p>
-              <div className="relative inline-block">
+      {/* Editor */}
+      {imageUrl && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Canvas */}
+          <div className="lg:col-span-2">
+            <div className="bg-card border rounded-lg p-4 space-y-4">
+              {/* Tools */}
+              <div className="flex items-center gap-2 pb-4 border-b">
+                <button
+                  onClick={() => {
+                    setDrawMode('rectangle')
+                    setPolygonPoints([])
+                    setFreehandPoints([])
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                    drawMode === 'rectangle'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted hover:bg-muted/80'
+                  }`}
+                >
+                  <Square className="w-4 h-4" />
+                  Dikdörtgen
+                </button>
+                <button
+                  onClick={() => {
+                    setDrawMode('freehand')
+                    setPolygonPoints([])
+                    setFreehandPoints([])
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                    drawMode === 'freehand'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted hover:bg-muted/80'
+                  }`}
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Kalem
+                </button>
+                <button
+                  onClick={() => {
+                    setDrawMode('polygon')
+                    setPolygonPoints([])
+                    setFreehandPoints([])
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                    drawMode === 'polygon'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted hover:bg-muted/80'
+                  }`}
+                >
+                  <Pentagon className="w-4 h-4" />
+                  Polygon
+                </button>
+                {drawMode === 'polygon' && polygonPoints.length > 0 && (
+                  <>
+                    <button
+                      onClick={finishPolygon}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                    >
+                      Tamamla ({polygonPoints.length} nokta)
+                    </button>
+                    <button
+                      onClick={() => setPolygonPoints([])}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                    >
+                      İptal
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Canvas */}
+              <div className="overflow-auto bg-neutral-100 dark:bg-neutral-900 rounded-lg p-4">
                 <img
                   ref={imageRef}
                   src={imageUrl}
                   alt="Preview"
-                  className="hidden"
+                  className="absolute opacity-0 pointer-events-none"
+                  crossOrigin="anonymous"
                 />
                 <canvas
                   ref={canvasRef}
                   onMouseDown={handleMouseDown}
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
-                  className="border cursor-crosshair max-w-full"
+                  className="cursor-crosshair shadow-lg w-full"
+                  style={{ minHeight: '500px' }}
                 />
               </div>
             </div>
+          </div>
 
-            {regions.length > 0 && (
-              <div>
-                <p className="text-sm font-medium mb-2">Etiketler ({regions.length})</p>
-                <div className="flex flex-wrap gap-2">
-                  {regions.map(region => (
-                    <div
-                      key={region.id}
-                      className="flex items-center gap-2 px-3 py-1 bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400 rounded-full text-sm"
-                    >
-                      <span>{region.label}</span>
+          {/* Regions Sidebar */}
+          <div className="space-y-4">
+            <div className="bg-card border rounded-lg p-4">
+              <h3 className="font-semibold mb-4 flex items-center justify-between">
+                <span>Bölgeler ({regions.length})</span>
+              </h3>
+              
+              <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                {regions.map((region) => (
+                  <div
+                    key={region.id}
+                    className={`p-3 rounded-lg border-2 transition-all ${
+                      selectedRegionId === region.id
+                        ? 'border-pink-500 bg-pink-50 dark:bg-pink-500/10'
+                        : 'border-purple-200 dark:border-purple-500/20 bg-purple-50 dark:bg-purple-500/5'
+                    }`}
+                    onClick={() => setSelectedRegionId(region.id)}
+                  >
+                    <div className="flex items-start gap-2">
+                      <input
+                        type="text"
+                        value={region.label}
+                        onChange={(e) => updateRegionLabel(region.id, e.target.value)}
+                        className="flex-1 px-2 py-1 text-sm border rounded bg-background"
+                        placeholder="Etiket adı"
+                        onClick={(e) => e.stopPropagation()}
+                      />
                       <button
-                        onClick={() => removeRegion(region.id)}
-                        className="hover:text-red-600"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removeRegion(region.id)
+                        }}
+                        className="p-1 text-red-500 hover:bg-red-500/10 rounded"
                       >
-                        <X className="w-3 h-3" />
+                        <X className="w-4 h-4" />
                       </button>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
+                
+                {regions.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Henüz bölge eklenmedi.<br/>
+                    Görselin üzerine çizim yapın.
+                  </p>
+                )}
               </div>
-            )}
-          </div>
-        )}
+            </div>
 
-        <button
-          onClick={handleSubmit}
-          disabled={loading || !title || !imageUrl || regions.length === 0}
-          className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50"
-        >
-          {loading ? 'Oluşturuluyor...' : '✨ Oyunu Oluştur'}
-        </button>
-      </div>
+            <button
+              onClick={handleSubmit}
+              disabled={loading || !title || !imageUrl || regions.length === 0}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Oluşturuluyor...' : '✨ Oyunu Kaydet'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Games List */}
       <div>
         <h3 className="text-lg font-semibold mb-4">Mevcut Oyunlar ({games.length})</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {games.map(game => (
-            <div key={game.id} className="bg-card border rounded-lg overflow-hidden">
-              <img src={game.image_url} alt={game.title} className="w-full h-40 object-cover" />
+            <div key={game.id} className="bg-card border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+              <img src={game.image_url} alt={game.title} className="w-full h-48 object-cover" />
               <div className="p-4">
                 <h4 className="font-semibold mb-1">{game.title}</h4>
-                <p className="text-xs text-muted-foreground mb-2">{game.regions.length} bölge</p>
+                <p className="text-xs text-muted-foreground mb-3">{game.regions.length} bölge</p>
                 <button
                   onClick={() => handleDelete(game.id)}
                   className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm"

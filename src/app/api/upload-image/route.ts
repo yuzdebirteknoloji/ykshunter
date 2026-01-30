@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,10 +10,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
+    // Cloudinary signed upload için timestamp ve signature oluştur
+    const timestamp = Math.round(Date.now() / 1000)
+    const apiSecret = process.env.CLOUDINARY_API_SECRET || ''
+    
+    // Signature oluştur
+    const signatureString = `timestamp=${timestamp}${apiSecret}`
+    const signature = crypto.createHash('sha1').update(signatureString).digest('hex')
+
     // Cloudinary'ye yükle
     const cloudinaryFormData = new FormData()
     cloudinaryFormData.append('file', file)
-    cloudinaryFormData.append('upload_preset', process.env.CLOUDINARY_UPLOAD_PRESET || 'ml_default')
+    cloudinaryFormData.append('timestamp', timestamp.toString())
+    cloudinaryFormData.append('signature', signature)
     cloudinaryFormData.append('api_key', process.env.CLOUDINARY_API_KEY || '')
 
     const response = await fetch(
