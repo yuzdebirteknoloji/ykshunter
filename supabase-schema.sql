@@ -303,3 +303,25 @@ KULLANIM:
 6. Streak Güncelleme (Günlük cron job):
    UPDATE users SET streak_days = calculate_user_streak(id);
 */
+
+
+-- ============================================
+-- GÖRSEL EŞLEŞTİRME OYUNLARI
+-- ============================================
+
+-- Görsel Oyunlar Tablosu
+CREATE TABLE IF NOT EXISTS image_games (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
+  topic_id UUID REFERENCES topics(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  image_url TEXT NOT NULL,
+  regions JSONB NOT NULL DEFAULT '[]', -- [{id, label, x, y, width, height}]
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Index for faster queries
+CREATE INDEX IF NOT EXISTS idx_image_games_subject ON image_games(subject_id);
+CREATE INDEX IF NOT EXISTS idx_image_games_topic ON image_games(topic_id);

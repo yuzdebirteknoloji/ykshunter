@@ -4,9 +4,10 @@ import { useState } from 'react'
 import { BulkImportTab } from '@/components/admin/bulk-import-tab'
 import { AnnouncementsTab } from '@/components/admin/announcements-tab'
 import { ManagementTab } from '@/components/admin/management-tab'
+import { ImageGameTab } from '@/components/admin/image-game-tab'
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState<'bulk-import' | 'announcements' | 'management'>('bulk-import')
+  const [activeTab, setActiveTab] = useState<'bulk-import' | 'announcements' | 'management' | 'image-game'>('bulk-import')
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -26,6 +27,16 @@ export default function DashboardPage() {
             }`}
           >
             ⚡ Toplu İçe Aktar
+          </button>
+          <button
+            onClick={() => setActiveTab('image-game')}
+            className={`px-3 md:px-4 py-2 text-xs md:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
+              activeTab === 'image-game'
+                ? 'text-foreground border-primary'
+                : 'text-muted-foreground border-transparent hover:text-foreground'
+            }`}
+          >
+            🖼️ Görsel Oyun
           </button>
           <button
             onClick={() => setActiveTab('management')}
@@ -50,6 +61,7 @@ export default function DashboardPage() {
         </div>
 
         {activeTab === 'bulk-import' && <BulkImportTab />}
+        {activeTab === 'image-game' && <ImageGameTab />}
         {activeTab === 'management' && <ManagementTab />}
         {activeTab === 'announcements' && <AnnouncementsTab />}
       </div>

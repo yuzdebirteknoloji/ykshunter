@@ -237,3 +237,89 @@ export async function createQuestionSet(
   if (error) throw error
   return result
 }
+
+
+// ============================================
+// IMAGE GAMES
+// ============================================
+
+export interface ImageGameRegion {
+  id: string
+  label: string
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export interface ImageGame {
+  id: string
+  subject_id: string | null
+  topic_id: string | null
+  title: string
+  description?: string
+  image_url: string
+  regions: ImageGameRegion[]
+  created_at: string
+  updated_at: string
+}
+
+export async function createImageGame(data: {
+  subject_id?: string
+  topic_id?: string
+  title: string
+  description?: string
+  image_url: string
+  regions: ImageGameRegion[]
+}) {
+  const { data: game, error } = await supabase
+    .from('image_games')
+    .insert([data])
+    .select()
+    .single()
+
+  if (error) throw error
+  return game
+}
+
+export async function getImageGames() {
+  const { data, error } = await supabase
+    .from('image_games')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data as ImageGame[]
+}
+
+export async function getImageGameById(id: string) {
+  const { data, error } = await supabase
+    .from('image_games')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (error) throw error
+  return data as ImageGame
+}
+
+export async function updateImageGame(id: string, updates: Partial<ImageGame>) {
+  const { data, error } = await supabase
+    .from('image_games')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function deleteImageGame(id: string) {
+  const { error } = await supabase
+    .from('image_games')
+    .delete()
+    .eq('id', id)
+
+  if (error) throw error
+}
