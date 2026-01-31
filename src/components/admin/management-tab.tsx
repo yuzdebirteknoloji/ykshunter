@@ -15,6 +15,9 @@ export function ManagementTab() {
   const [editingSet, setEditingSet] = useState<any | null>(null)
   const [editData, setEditData] = useState<string>('')
   const [saving, setSaving] = useState(false)
+  const [editingSubject, setEditingSubject] = useState<any | null>(null)
+  const [subjectName, setSubjectName] = useState('')
+  const [subjectIcon, setSubjectIcon] = useState('')
 
   useEffect(() => {
     loadData()
@@ -215,6 +218,49 @@ export function ManagementTab() {
     }
   }
 
+  const openEditSubject = (subject: any) => {
+    setEditingSubject(subject)
+    setSubjectName(subject.name)
+    setSubjectIcon(subject.icon)
+  }
+
+  const closeEditSubject = () => {
+    setEditingSubject(null)
+    setSubjectName('')
+    setSubjectIcon('')
+  }
+
+  const saveSubject = async () => {
+    if (!editingSubject || !subjectName.trim() || !subjectIcon.trim()) {
+      toast.error('Ders adı ve emoji gerekli')
+      return
+    }
+
+    try {
+      setSaving(true)
+
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('subjects')
+        .update({ 
+          name: subjectName.trim(),
+          icon: subjectIcon.trim()
+        })
+        .eq('id', editingSubject.id)
+
+      if (error) throw error
+
+      toast.success('Ders güncellendi')
+      closeEditSubject()
+      loadData()
+    } catch (error: any) {
+      console.error('Error saving subject:', error)
+      toast.error('Kaydetme başarısız: ' + error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -252,13 +298,23 @@ export function ManagementTab() {
                   </div>
                 </div>
               </button>
-              <button
-                onClick={() => deleteSubject(subject.id, subject.name)}
-                disabled={deleting === subject.id}
-                className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => openEditSubject(subject)}
+                  className="p-2 text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors"
+                  title="Düzenle"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => deleteSubject(subject.id, subject.name)}
+                  disabled={deleting === subject.id}
+                  className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
+                  title="Sil"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Topics */}
@@ -456,6 +512,77 @@ export function ManagementTab() {
                 </button>
                 <button
                   onClick={closeEditModal}
+                  disabled={saving}
+                  className="px-6 py-3 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 disabled:opacity-50 transition-all"
+                >
+                  İptal
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Edit Subject Modal */}
+      {editingSubject && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-card border border-border rounded-xl p-6 max-w-md w-full shadow-2xl"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-foreground">Dersi Düzenle</h3>
+              <button
+                onClick={closeEditSubject}
+                className="p-2 hover:bg-muted rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Ders Adı
+                </label>
+                <input
+                  type="text"
+                  value={subjectName}
+                  onChange={(e) => setSubjectName(e.target.value)}
+                  className="w-full p-3 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Örn: Matematik"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Emoji İkon
+                </label>
+                <input
+                  type="text"
+                  value={subjectIcon}
+                  onChange={(e) => setSubjectIcon(e.target.value)}
+                  className="w-full p-3 bg-muted border border-border rounded-lg text-foreground text-2xl text-center focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="📚"
+                  maxLength={2}
+                />
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  💡 Tek bir emoji girin (Windows: Win + . veya Mac: Cmd + Ctrl + Space)
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={saveSubject}
+                  disabled={saving || !subjectName.trim() || !subjectIcon.trim()}
+                  className="flex-1 flex items-center justify-center gap-2 bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:opacity-90 disabled:opacity-50 transition-all"
+                >
+                  <Save className="w-4 h-4" />
+                  {saving ? 'Kaydediliyor...' : 'Kaydet'}
+                </button>
+                <button
+                  onClick={closeEditSubject}
                   disabled={saving}
                   className="px-6 py-3 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 disabled:opacity-50 transition-all"
                 >
