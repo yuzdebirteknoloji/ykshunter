@@ -463,6 +463,28 @@ export default function PlayPage() {
 function MatchingGameView({ state, setState, showResult, showCorrectAnswers }: any) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const [connections, setConnections] = useState<{[key: string]: string}>({})
+  
+  // Sol taraftaki terimleri karıştır (sadece ilk render'da)
+  const [shuffledKeys] = useState(() => {
+    const keys = [...state.pairs]
+    // Fisher-Yates shuffle
+    for (let i = keys.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [keys[i], keys[j]] = [keys[j], keys[i]]
+    }
+    return keys
+  })
+  
+  // Sağ taraftaki cevapları karıştır (sadece ilk render'da)
+  const [shuffledValues] = useState(() => {
+    const values = [...state.pairs]
+    // Fisher-Yates shuffle
+    for (let i = values.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [values[i], values[j]] = [values[j], values[i]]
+    }
+    return values
+  })
 
   // State'ten connections'ı yükle
   useEffect(() => {
@@ -532,7 +554,7 @@ function MatchingGameView({ state, setState, showResult, showCorrectAnswers }: a
         {/* Keys (Sol taraf) */}
         <div className="space-y-3">
           <h3 className="font-semibold text-foreground mb-4 text-lg">Terimler</h3>
-          {state.pairs.map((pair: any) => {
+          {shuffledKeys.map((pair: any) => {
             const isConnected = !!connections[pair.id]
             const isSelected = selectedKey === pair.id
             const color = isConnected ? getColorForConnection(pair.id) : null
@@ -574,7 +596,7 @@ function MatchingGameView({ state, setState, showResult, showCorrectAnswers }: a
         {/* Values (Sağ taraf) */}
         <div className="space-y-3">
           <h3 className="font-semibold text-foreground mb-4 text-lg">Açıklamalar</h3>
-          {state.pairs.map((pair: any) => {
+          {shuffledValues.map((pair: any) => {
             const connectedKeyId = Object.keys(connections).find(k => connections[k] === pair.id)
             const isConnected = !!connectedKeyId
             const color = isConnected ? getColorForConnection(connectedKeyId!) : null
@@ -802,20 +824,20 @@ function GroupingGameView({ state, setState, showResult, showCorrectAnswers }: a
           return (
             <div 
               key={category} 
-              className={`border-2 rounded-lg p-4 ${
+              className={`border-2 rounded-lg p-4 min-h-[200px] ${
                 showCorrectAnswers 
                   ? 'border-green-500 bg-green-50 dark:bg-green-500/10'
                   : 'border-purple-300 dark:border-purple-500/20 bg-purple-50 dark:bg-purple-500/5'
               }`}
             >
-              <h3 className={`font-semibold mb-3 ${
+              <h3 className={`font-semibold mb-3 text-lg ${
                 showCorrectAnswers 
                   ? 'text-green-700 dark:text-green-400'
                   : 'text-purple-700 dark:text-purple-400'
               }`}>
                 {category}
               </h3>
-              <div className="space-y-2 min-h-[100px]">
+              <div className="space-y-2">
                 {categoryItems.map((item: any) => {
                   const isCorrect = showCorrectAnswers ? item.correctCategory === category : null
                   
@@ -850,7 +872,7 @@ function GroupingGameView({ state, setState, showResult, showCorrectAnswers }: a
                   )
                 })}
                 {categoryItems.length === 0 && !showCorrectAnswers && (
-                  <p className="text-gray-400 dark:text-neutral-500 text-center py-4 text-sm">
+                  <p className="text-gray-400 dark:text-neutral-500 text-center py-8 text-sm">
                     Buraya yerleştir
                   </p>
                 )}
@@ -889,21 +911,25 @@ function GroupingGameView({ state, setState, showResult, showCorrectAnswers }: a
 
       {/* Unassigned Items */}
       {!showCorrectAnswers && unassignedItems.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <h3 className="font-semibold text-foreground mb-3">Yerleştirilecek Öğeler</h3>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {unassignedItems.map((item: any) => (
-              <div key={item.id} className="flex items-center gap-2">
-                <span className="flex-1 p-3 bg-muted border border-border rounded-lg text-foreground shadow-sm">{item.text}</span>
-                {state.categories.map((category: string) => (
-                  <button
-                    key={category}
-                    onClick={() => assignToGroup(item.id, category)}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm transition-all shadow-sm"
-                  >
-                    {category}
-                  </button>
-                ))}
+              <div key={item.id} className="flex flex-col gap-3">
+                <div className="p-4 bg-muted border-2 border-border rounded-lg text-foreground shadow-sm font-medium">
+                  {item.text}
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {state.categories.map((category: string) => (
+                    <button
+                      key={category}
+                      onClick={() => assignToGroup(item.id, category)}
+                      className="px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium transition-all shadow-sm"
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
               </div>
             ))}
           </div>

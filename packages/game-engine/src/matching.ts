@@ -6,11 +6,16 @@ export function initializeMatchingGame(
   randomize: boolean = true
 ): MatchingGameState {
   // Her key-value çifti için benzersiz ID'ler oluştur
-  const pairs = data.map((item, index) => ({
+  let pairs = data.map((item, index) => ({
     id: `pair-${index}`,
     key: item.key,
     value: item.value
   }))
+
+  // Randomize ise hem keys hem values'ı karıştır
+  if (randomize) {
+    pairs = shuffle(pairs)
+  }
 
   return {
     mode: 'matching',

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Trash2, Edit2, ChevronDown, ChevronRight } from 'lucide-react'
+import { Trash2, Edit2, ChevronDown, ChevronRight, X, Save } from 'lucide-react'
 import { getSubjects, getTopicsBySubject, getQuestionSetsByTopicAndMode, getImageGamesByTopic, createClient } from '@/lib/supabase'
 import { toast } from 'sonner'
 
@@ -12,6 +12,9 @@ export function ManagementTab() {
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [editingSet, setEditingSet] = useState<any | null>(null)
+  const [editData, setEditData] = useState<string>('')
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -172,6 +175,46 @@ export function ManagementTab() {
     }
   }
 
+  const openEditModal = (set: any) => {
+    setEditingSet(set)
+    setEditData(JSON.stringify(set.data, null, 2))
+  }
+
+  const closeEditModal = () => {
+    setEditingSet(null)
+    setEditData('')
+  }
+
+  const saveQuestionSet = async () => {
+    if (!editingSet) return
+
+    try {
+      const parsedData = JSON.parse(editData)
+      setSaving(true)
+
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('question_sets')
+        .update({ data: parsedData })
+        .eq('id', editingSet.id)
+
+      if (error) throw error
+
+      toast.success('Soru seti güncellendi')
+      closeEditModal()
+      loadData()
+    } catch (error: any) {
+      console.error('Error saving question set:', error)
+      if (error instanceof SyntaxError) {
+        toast.error('JSON formatı hatalı')
+      } else {
+        toast.error('Kaydetme başarısız: ' + error.message)
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -266,13 +309,23 @@ export function ManagementTab() {
                                 {set.data?.length || 0} soru
                               </span>
                             </div>
-                            <button
-                              onClick={() => deleteQuestionSet(set.id)}
-                              disabled={deleting === set.id}
-                              className="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => openEditModal(set)}
+                                className="p-1 text-blue-500 hover:bg-blue-500/10 rounded transition-colors"
+                                title="Düzenle"
+                              >
+                                <Edit2 className="w-3 h-3" />
+                              </button>
+                              <button
+                                onClick={() => deleteQuestionSet(set.id)}
+                                disabled={deleting === set.id}
+                                className="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
+                                title="Sil"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
                           </div>
                         ))}
                         
@@ -327,6 +380,92 @@ export function ManagementTab() {
           </div>
         )}
       </div>
+
+      {/* Edit Modal */}
+      {editingSet && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-card border border-border rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-bold text-foreground">Soru Setini Düzenle</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Mod: <span className="font-medium text-primary">{editingSet.mode}</span>
+                </p>
+              </div>
+              <button
+                onClick={closeEditModal}
+                className="p-2 hover:bg-muted rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Soru Verileri (JSON)
+                </label>
+                <textarea
+                  value={editData}
+                  onChange={(e) => setEditData(e.target.value)}
+                  className="w-full h-96 p-4 bg-muted border border-border rounded-lg font-mono text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="JSON formatında soru verilerini girin..."
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  💡 İpucu: JSON formatına dikkat edin. Hatalı format kaydetmeyi engelleyecektir.
+                </p>
+              </div>
+
+              {/* Format Examples */}
+              <div className="bg-muted/50 rounded-lg p-4 border border-border">
+                <p className="text-sm font-medium text-foreground mb-2">📝 Format Örnekleri:</p>
+                <div className="space-y-2 text-xs">
+                  <div>
+                    <span className="font-medium text-blue-500">Matching:</span>
+                    <code className="block mt-1 p-2 bg-background rounded text-foreground">
+                      {`[{"key": "Terim", "value": "Açıklama"}]`}
+                    </code>
+                  </div>
+                  <div>
+                    <span className="font-medium text-purple-500">Sequence:</span>
+                    <code className="block mt-1 p-2 bg-background rounded text-foreground">
+                      {`["İlk adım", "İkinci adım", "Üçüncü adım"]`}
+                    </code>
+                  </div>
+                  <div>
+                    <span className="font-medium text-green-500">Grouping:</span>
+                    <code className="block mt-1 p-2 bg-background rounded text-foreground">
+                      {`[{"item": "Öğe", "category": "Kategori"}]`}
+                    </code>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={saveQuestionSet}
+                  disabled={saving}
+                  className="flex-1 flex items-center justify-center gap-2 bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:opacity-90 disabled:opacity-50 transition-all"
+                >
+                  <Save className="w-4 h-4" />
+                  {saving ? 'Kaydediliyor...' : 'Kaydet'}
+                </button>
+                <button
+                  onClick={closeEditModal}
+                  disabled={saving}
+                  className="px-6 py-3 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 disabled:opacity-50 transition-all"
+                >
+                  İptal
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   )
 }
