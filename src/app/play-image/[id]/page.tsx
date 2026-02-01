@@ -536,7 +536,7 @@ export default function PlayImageGamePage() {
               </div>
 
               <div className="flex flex-col gap-3">
-                {score < 100 && (
+                {score < 100 && !showCorrectAnswers && (
                   <button
                     onClick={() => {
                       setShowResult(false)
