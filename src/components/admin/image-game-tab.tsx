@@ -12,7 +12,7 @@ export function ImageGameTab() {
   const [gameMode, setGameMode] = useState<GameMode>('region')
   const [games, setGames] = useState<ImageGame[]>([])
   const [subjects, setSubjects] = useState<any[]>([])
-  const [topics, setTopics] = useState<any[]>([])
+  const [allTopics, setAllTopics] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -20,6 +20,7 @@ export function ImageGameTab() {
   }, [])
 
   const loadData = async () => {
+    setLoading(true)
     try {
       const [gamesData, subjectsData] = await Promise.all([
         getImageGames(),
@@ -27,17 +28,18 @@ export function ImageGameTab() {
       ])
       setGames(gamesData)
       setSubjects(subjectsData)
+      
+      // Load all topics for all subjects at once
+      if (subjectsData.length > 0) {
+        const allTopicsPromises = subjectsData.map(s => getTopicsBySubject(s.id))
+        const allTopicsArrays = await Promise.all(allTopicsPromises)
+        const flatTopics = allTopicsArrays.flat()
+        setAllTopics(flatTopics)
+      }
     } catch (error) {
       console.error('Error loading data:', error)
-    }
-  }
-
-  const loadTopics = async (subjectId: string) => {
-    try {
-      const topicsData = await getTopicsBySubject(subjectId)
-      setTopics(topicsData)
-    } catch (error) {
-      console.error('Error loading topics:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -87,17 +89,15 @@ export function ImageGameTab() {
       {gameMode === 'region' ? (
         <RegionMarkingMode
           subjects={subjects}
-          topics={topics}
+          allTopics={allTopics}
           loading={loading}
-          onLoadTopics={loadTopics}
           onReload={loadData}
         />
       ) : (
         <TextCoverMode
           subjects={subjects}
-          topics={topics}
+          allTopics={allTopics}
           loading={loading}
-          onLoadTopics={loadTopics}
           onReload={loadData}
         />
       )}
@@ -130,13 +130,14 @@ export function ImageGameTab() {
 
 
 // Region Marking Mode Component (Mevcut sistem)
-function RegionMarkingMode({ subjects, topics, loading, onLoadTopics, onReload }: any) {
+function RegionMarkingMode({ subjects, allTopics, loading, onReload }: any) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [selectedSubject, setSelectedSubject] = useState('')
   const [selectedTopic, setSelectedTopic] = useState('')
   const [imageUrl, setImageUrl] = useState('')
   const [regions, setRegions] = useState<ImageGameRegion[]>([])
+  const [saving, setSaving] = useState(false)
   
   const [drawMode, setDrawMode] = useState<DrawMode>('rectangle')
   const [isDrawing, setIsDrawing] = useState(false)
@@ -149,11 +150,10 @@ function RegionMarkingMode({ subjects, topics, loading, onLoadTopics, onReload }
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
 
-  useEffect(() => {
-    if (selectedSubject) {
-      onLoadTopics(selectedSubject)
-    }
-  }, [selectedSubject])
+  // Filter topics based on selected subject
+  const filteredTopics = selectedSubject 
+    ? allTopics.filter((t: any) => t.subject_id === selectedSubject)
+    : []
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -433,6 +433,7 @@ function RegionMarkingMode({ subjects, topics, loading, onLoadTopics, onReload }
       return
     }
 
+    setSaving(true)
     try {
       await createImageGame({
         subject_id: selectedSubject || undefined,
@@ -457,6 +458,8 @@ function RegionMarkingMode({ subjects, topics, loading, onLoadTopics, onReload }
     } catch (error: any) {
       console.error('Error creating game:', error)
       alert('❌ Oyun oluşturulamadı: ' + (error?.message || 'Bilinmeyen hata'))
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -513,7 +516,7 @@ function RegionMarkingMode({ subjects, topics, loading, onLoadTopics, onReload }
               disabled={!selectedSubject}
             >
               <option value="">Seçiniz</option>
-              {topics.map((t: any) => (
+              {filteredTopics.map((t: any) => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>
@@ -667,7 +670,7 @@ function RegionMarkingMode({ subjects, topics, loading, onLoadTopics, onReload }
 
             <button
               onClick={handleSubmit}
-              disabled={loading || !title || !imageUrl || regions.length === 0}
+              disabled={saving || !title || !imageUrl || regions.length === 0}
               className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Oluşturuluyor...' : '✨ Oyunu Kaydet'}
@@ -681,13 +684,14 @@ function RegionMarkingMode({ subjects, topics, loading, onLoadTopics, onReload }
 
 
 // Text Cover Mode Component (Yeni sistem - Yazıları kapat)
-function TextCoverMode({ subjects, topics, loading, onLoadTopics, onReload }: any) {
+function TextCoverMode({ subjects, allTopics, loading, onReload }: any) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [selectedSubject, setSelectedSubject] = useState('')
   const [selectedTopic, setSelectedTopic] = useState('')
   const [imageUrl, setImageUrl] = useState('')
   const [textBoxes, setTextBoxes] = useState<ImageGameRegion[]>([])
+  const [saving, setSaving] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [currentBox, setCurrentBox] = useState<any>(null)
@@ -696,11 +700,10 @@ function TextCoverMode({ subjects, topics, loading, onLoadTopics, onReload }: an
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
 
-  useEffect(() => {
-    if (selectedSubject) {
-      onLoadTopics(selectedSubject)
-    }
-  }, [selectedSubject])
+  // Filter topics based on selected subject
+  const filteredTopics = selectedSubject 
+    ? allTopics.filter((t: any) => t.subject_id === selectedSubject)
+    : []
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -868,6 +871,7 @@ function TextCoverMode({ subjects, topics, loading, onLoadTopics, onReload }: an
       return
     }
 
+    setSaving(true)
     try {
       await createImageGame({
         subject_id: selectedSubject || undefined,
@@ -892,6 +896,8 @@ function TextCoverMode({ subjects, topics, loading, onLoadTopics, onReload }: an
     } catch (error: any) {
       console.error('Error creating game:', error)
       alert('❌ Oyun oluşturulamadı: ' + (error?.message || 'Bilinmeyen hata'))
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -955,7 +961,7 @@ function TextCoverMode({ subjects, topics, loading, onLoadTopics, onReload }: an
               disabled={!selectedSubject}
             >
               <option value="">Seçiniz</option>
-              {topics.map((t: any) => (
+              {filteredTopics.map((t: any) => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>
@@ -1057,7 +1063,7 @@ function TextCoverMode({ subjects, topics, loading, onLoadTopics, onReload }: an
 
             <button
               onClick={handleSubmit}
-              disabled={loading || !title || !imageUrl || textBoxes.length === 0}
+              disabled={saving || !title || !imageUrl || textBoxes.length === 0}
               className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Oluşturuluyor...' : '✨ Oyunu Kaydet'}
