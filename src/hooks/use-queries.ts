@@ -149,7 +149,54 @@ export function useImageGames() {
   })
 }
 
-// Management - Full hierarchy with cache
+// Management - Lazy loading with on-demand data
+export function useManagementSubjects() {
+  return useQuery({
+    queryKey: ['management', 'subjects'],
+    queryFn: async () => {
+      return await getSubjects()
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+  })
+}
+
+export function useManagementTopics(subjectId: string, enabled: boolean = true) {
+  return useQuery({
+    queryKey: ['management', 'topics', subjectId],
+    queryFn: async () => {
+      const topics = await getTopicsBySubject(subjectId)
+      return topics
+    },
+    enabled: enabled && !!subjectId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+  })
+}
+
+export function useManagementQuestionSets(topicId: string, enabled: boolean = true) {
+  return useQuery({
+    queryKey: ['management', 'question-sets', topicId],
+    queryFn: async () => {
+      const [matchingSets, sequenceSets, groupingSets, imageGames] = await Promise.all([
+        getQuestionSetsByTopicAndMode(topicId, 'matching'),
+        getQuestionSetsByTopicAndMode(topicId, 'sequence'),
+        getQuestionSetsByTopicAndMode(topicId, 'grouping'),
+        getImageGamesByTopic(topicId)
+      ])
+      
+      return {
+        questionSets: [...matchingSets, ...sequenceSets, ...groupingSets],
+        imageGames
+      }
+    },
+    enabled: enabled && !!topicId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+  })
+}
+
+// Management - Full hierarchy with cache (DEPRECATED - use lazy loading instead)
 export function useManagementData() {
   return useQuery({
     queryKey: ['management', 'full-hierarchy'],

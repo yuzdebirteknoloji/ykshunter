@@ -5,11 +5,11 @@ import { motion } from 'framer-motion'
 import { Trash2, Edit2, ChevronDown, ChevronRight, X, Save } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { toast } from 'sonner'
-import { useManagementData } from '@/hooks/use-queries'
+import { useManagementSubjects, useManagementTopics, useManagementQuestionSets } from '@/hooks/use-queries'
 import { useQueryClient } from '@tanstack/react-query'
 
 export function ManagementTab() {
-  const { data: subjects = [], isLoading: loading, refetch } = useManagementData()
+  const { data: subjects = [], isLoading: loading } = useManagementSubjects()
   const queryClient = useQueryClient()
   
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set())
@@ -26,7 +26,8 @@ export function ManagementTab() {
   const [topicShuffleSets, setTopicShuffleSets] = useState(true)
 
   const invalidateCache = () => {
-    queryClient.invalidateQueries({ queryKey: ['management', 'full-hierarchy'] })
+    // Invalidate all management caches
+    queryClient.invalidateQueries({ queryKey: ['management'] })
   }
 
   const toggleSubject = (subjectId: string) => {
@@ -302,166 +303,22 @@ export function ManagementTab() {
 
       <div className="space-y-2">
         {subjects.map((subject) => (
-          <div key={subject.id} className="bg-card rounded-lg border">
-            {/* Subject Header */}
-            <div className="flex items-center justify-between p-4">
-              <button
-                onClick={() => toggleSubject(subject.id)}
-                className="flex items-center gap-2 flex-1 text-left"
-              >
-                {expandedSubjects.has(subject.id) ? (
-                  <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                ) : (
-                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                )}
-                <span className="text-2xl">{subject.icon}</span>
-                <div>
-                  <div className="font-semibold text-foreground">{subject.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {subject.topics.length} konu
-                  </div>
-                </div>
-              </button>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => openEditSubject(subject)}
-                  className="p-2 text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors"
-                  title="Düzenle"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => deleteSubject(subject.id, subject.name)}
-                  disabled={deleting === subject.id}
-                  className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
-                  title="Sil"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Topics */}
-            {expandedSubjects.has(subject.id) && (
-              <div className="px-4 pb-4 space-y-2">
-                {subject.topics.map((topic: any) => (
-                  <div key={topic.id} className="bg-muted rounded-lg border border-border">
-                    {/* Topic Header */}
-                    <div className="flex items-center justify-between p-3">
-                      <button
-                        onClick={() => toggleTopic(topic.id)}
-                        className="flex items-center gap-2 flex-1 text-left"
-                      >
-                        {expandedTopics.has(topic.id) ? (
-                          <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                        ) : (
-                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                        )}
-                        <div>
-                          <div className="font-medium text-foreground">{topic.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {topic.questionSets.length} soru seti • {topic.imageGames?.length || 0} görsel oyun
-                          </div>
-                        </div>
-                      </button>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => openEditTopic(topic)}
-                          className="p-2 text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors"
-                          title="Düzenle"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => deleteTopic(topic.id, topic.name)}
-                          disabled={deleting === topic.id}
-                          className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Question Sets */}
-                    {expandedTopics.has(topic.id) && (
-                      <div className="px-3 pb-3 space-y-1">
-                        {topic.questionSets.map((set: any) => (
-                          <div
-                            key={set.id}
-                            className="flex items-center justify-between p-2 bg-background rounded border border-border"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded">
-                                {set.mode}
-                              </span>
-                              <span className="text-sm text-foreground">
-                                {set.data?.length || 0} soru
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => openEditModal(set)}
-                                className="p-1 text-blue-500 hover:bg-blue-500/10 rounded transition-colors"
-                                title="Düzenle"
-                              >
-                                <Edit2 className="w-3 h-3" />
-                              </button>
-                              <button
-                                onClick={() => deleteQuestionSet(set.id)}
-                                disabled={deleting === set.id}
-                                className="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
-                                title="Sil"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                        
-                        {/* Image Games */}
-                        {topic.imageGames?.map((game: any) => (
-                          <div
-                            key={game.id}
-                            className="flex items-center justify-between p-2 bg-background rounded border border-border"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs px-2 py-1 bg-pink-500/10 text-pink-500 rounded">
-                                🖼️ görsel
-                              </span>
-                              <span className="text-sm text-foreground">
-                                {game.title}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                ({game.regions?.length || 0} bölge)
-                              </span>
-                            </div>
-                            <button
-                              onClick={() => deleteImageGame(game.id)}
-                              disabled={deleting === game.id}
-                              className="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-                        
-                        {topic.questionSets.length === 0 && (!topic.imageGames || topic.imageGames.length === 0) && (
-                          <div className="text-xs text-muted-foreground text-center py-2">
-                            İçerik yok
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {subject.topics.length === 0 && (
-                  <div className="text-sm text-muted-foreground text-center py-4">
-                    Konu yok
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          <SubjectItem
+            key={subject.id}
+            subject={subject}
+            isExpanded={expandedSubjects.has(subject.id)}
+            onToggle={() => toggleSubject(subject.id)}
+            onEdit={openEditSubject}
+            onDelete={deleteSubject}
+            deleting={deleting}
+            expandedTopics={expandedTopics}
+            onToggleTopic={toggleTopic}
+            onEditTopic={openEditTopic}
+            onDeleteTopic={deleteTopic}
+            onEditSet={openEditModal}
+            onDeleteSet={deleteQuestionSet}
+            onDeleteImageGame={deleteImageGame}
+          />
         ))}
         {subjects.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
@@ -718,6 +575,235 @@ export function ManagementTab() {
               </div>
             </div>
           </motion.div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Subject Item Component with lazy loading
+function SubjectItem({ 
+  subject, 
+  isExpanded, 
+  onToggle, 
+  onEdit, 
+  onDelete, 
+  deleting,
+  expandedTopics,
+  onToggleTopic,
+  onEditTopic,
+  onDeleteTopic,
+  onEditSet,
+  onDeleteSet,
+  onDeleteImageGame
+}: any) {
+  const { data: topics = [], isLoading } = useManagementTopics(subject.id, isExpanded)
+  
+  return (
+    <div className="bg-card rounded-lg border">
+      {/* Subject Header */}
+      <div className="flex items-center justify-between p-4">
+        <button
+          onClick={onToggle}
+          className="flex items-center gap-2 flex-1 text-left"
+        >
+          {isExpanded ? (
+            <ChevronDown className="w-5 h-5 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          )}
+          <span className="text-2xl">{subject.icon}</span>
+          <div>
+            <div className="font-semibold text-foreground">{subject.name}</div>
+            <div className="text-xs text-muted-foreground">
+              {isExpanded ? `${topics.length} konu` : 'Yükleniyor...'}
+            </div>
+          </div>
+        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onEdit(subject)}
+            className="p-2 text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors"
+            title="Düzenle"
+          >
+            <Edit2 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onDelete(subject.id, subject.name)}
+            disabled={deleting === subject.id}
+            className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
+            title="Sil"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Topics */}
+      {isExpanded && (
+        <div className="px-4 pb-4 space-y-2">
+          {isLoading ? (
+            <div className="text-sm text-muted-foreground text-center py-4">
+              Yükleniyor...
+            </div>
+          ) : topics.length === 0 ? (
+            <div className="text-sm text-muted-foreground text-center py-4">
+              Konu yok
+            </div>
+          ) : (
+            topics.map((topic: any) => (
+              <TopicItem
+                key={topic.id}
+                topic={topic}
+                isExpanded={expandedTopics.has(topic.id)}
+                onToggle={() => onToggleTopic(topic.id)}
+                onEdit={onEditTopic}
+                onDelete={onDeleteTopic}
+                onEditSet={onEditSet}
+                onDeleteSet={onDeleteSet}
+                onDeleteImageGame={onDeleteImageGame}
+                deleting={deleting}
+              />
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Topic Item Component with lazy loading
+function TopicItem({
+  topic,
+  isExpanded,
+  onToggle,
+  onEdit,
+  onDelete,
+  onEditSet,
+  onDeleteSet,
+  onDeleteImageGame,
+  deleting
+}: any) {
+  const { data, isLoading } = useManagementQuestionSets(topic.id, isExpanded)
+  const questionSets = data?.questionSets || []
+  const imageGames = data?.imageGames || []
+  
+  return (
+    <div className="bg-muted rounded-lg border border-border">
+      {/* Topic Header */}
+      <div className="flex items-center justify-between p-3">
+        <button
+          onClick={onToggle}
+          className="flex items-center gap-2 flex-1 text-left"
+        >
+          {isExpanded ? (
+            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          )}
+          <div>
+            <div className="font-medium text-foreground">{topic.name}</div>
+            <div className="text-xs text-muted-foreground">
+              {isExpanded 
+                ? `${questionSets.length} soru seti • ${imageGames.length} görsel oyun`
+                : 'Tıkla'}
+            </div>
+          </div>
+        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onEdit(topic)}
+            className="p-2 text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors"
+            title="Düzenle"
+          >
+            <Edit2 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onDelete(topic.id, topic.name)}
+            disabled={deleting === topic.id}
+            className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Question Sets */}
+      {isExpanded && (
+        <div className="px-3 pb-3 space-y-1">
+          {isLoading ? (
+            <div className="text-xs text-muted-foreground text-center py-2">
+              Yükleniyor...
+            </div>
+          ) : (
+            <>
+              {questionSets.map((set: any) => (
+                <div
+                  key={set.id}
+                  className="flex items-center justify-between p-2 bg-background rounded border border-border"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded">
+                      {set.mode}
+                    </span>
+                    <span className="text-sm text-foreground">
+                      {set.data?.length || 0} soru
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => onEditSet(set)}
+                      className="p-1 text-blue-500 hover:bg-blue-500/10 rounded transition-colors"
+                      title="Düzenle"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => onDeleteSet(set.id)}
+                      disabled={deleting === set.id}
+                      className="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
+                      title="Sil"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              
+              {/* Image Games */}
+              {imageGames.map((game: any) => (
+                <div
+                  key={game.id}
+                  className="flex items-center justify-between p-2 bg-background rounded border border-border"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs px-2 py-1 bg-pink-500/10 text-pink-500 rounded">
+                      🖼️ görsel
+                    </span>
+                    <span className="text-sm text-foreground">
+                      {game.title}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      ({game.regions?.length || 0} bölge)
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => onDeleteImageGame(game.id)}
+                    disabled={deleting === game.id}
+                    className="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+              
+              {questionSets.length === 0 && imageGames.length === 0 && (
+                <div className="text-xs text-muted-foreground text-center py-2">
+                  İçerik yok
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>
