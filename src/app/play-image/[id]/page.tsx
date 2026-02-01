@@ -413,7 +413,25 @@ export default function PlayImageGamePage() {
           </button>
           
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <h1 className="text-3xl font-bold text-foreground mb-2">{game.title}</h1>
+            <div className="flex items-start justify-between gap-4 mb-2">
+              <h1 className="text-3xl font-bold text-foreground">{game.title}</h1>
+              
+              {/* Sonraki Oyun Butonu */}
+              {allGames.length > 1 && (
+                <button
+                  onClick={handleNextGame}
+                  className="flex items-center gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white rounded-lg font-medium hover:from-pink-700 hover:to-purple-700 transition-all shadow-md text-xs md:text-sm whitespace-nowrap"
+                  title="Oyunu bitirmeden sonraki oyuna geç"
+                >
+                  <span className="hidden sm:inline">🖼️ Sonraki Oyun</span>
+                  <span className="sm:hidden">🖼️</span>
+                  <span className="text-xs opacity-80">
+                    {currentGameIndex + 1}/{allGames.length}
+                  </span>
+                </button>
+              )}
+            </div>
+            
             {game.description && <p className="text-muted-foreground">{game.description}</p>}
             
             <div className="flex items-center gap-3 mt-4">

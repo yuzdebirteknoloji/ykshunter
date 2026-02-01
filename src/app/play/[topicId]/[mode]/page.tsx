@@ -162,9 +162,44 @@ export default function PlayPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <h1 className="text-2xl md:text-4xl font-bold text-foreground mb-3">
-              {topic.name}
-            </h1>
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <h1 className="text-2xl md:text-4xl font-bold text-foreground">
+                {topic.name}
+              </h1>
+              
+              {/* Sonraki Set Butonu */}
+              {allQuestionSets.length > 1 && (
+                <button
+                  onClick={() => {
+                    const shouldShuffle = topic.shuffle_sets !== false
+                    let nextIndex
+                    
+                    if (shouldShuffle) {
+                      nextIndex = Math.floor(Math.random() * allQuestionSets.length)
+                    } else {
+                      nextIndex = (currentSetIndex + 1) % allQuestionSets.length
+                    }
+                    
+                    setCurrentSetIndex(nextIndex)
+                    setShowResult(false)
+                    setShowCorrectAnswers(false)
+                  }}
+                  className="flex items-center gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all shadow-md text-xs md:text-sm whitespace-nowrap"
+                  title="Oyunu bitirmeden sonraki sete geç"
+                >
+                  <span className="hidden sm:inline">
+                    {topic.shuffle_sets !== false ? '🎲 Rastgele Set' : '➡️ Sonraki Set'}
+                  </span>
+                  <span className="sm:hidden">
+                    {topic.shuffle_sets !== false ? '🎲' : '➡️'}
+                  </span>
+                  <span className="text-xs opacity-80">
+                    {currentSetIndex + 1}/{allQuestionSets.length}
+                  </span>
+                </button>
+              )}
+            </div>
+            
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 md:gap-4">
               <span className={`px-3 py-1 rounded-full text-xs md:text-sm font-medium border whitespace-nowrap ${
                 modeInfo.color === 'purple' ? 'bg-purple-100 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-500/20' :
