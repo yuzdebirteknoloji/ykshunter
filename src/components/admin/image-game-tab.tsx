@@ -14,6 +14,7 @@ export function ImageGameTab() {
   const [subjects, setSubjects] = useState<any[]>([])
   const [allTopics, setAllTopics] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [showGames, setShowGames] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -103,26 +104,37 @@ export function ImageGameTab() {
       )}
 
       {/* Games List */}
-      <div>
-        <h3 className="text-lg font-semibold mb-4">Mevcut Oyunlar ({games.length})</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {games.map(game => (
-            <div key={game.id} className="bg-card border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
-              <img src={game.image_url} alt={game.title} className="w-full h-48 object-cover" />
-              <div className="p-4">
-                <h4 className="font-semibold mb-1">{game.title}</h4>
-                <p className="text-xs text-muted-foreground mb-3">{game.regions.length} bölge</p>
-                <button
-                  onClick={() => handleDelete(game.id)}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Sil
-                </button>
-              </div>
+      <div className="bg-card border rounded-lg">
+        <button
+          onClick={() => setShowGames(!showGames)}
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+        >
+          <h3 className="text-lg font-semibold">Mevcut Oyunlar ({games.length})</h3>
+          <span className="text-2xl">{showGames ? '▼' : '▶'}</span>
+        </button>
+        
+        {showGames && (
+          <div className="p-4 pt-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {games.map(game => (
+                <div key={game.id} className="bg-card border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+                  <img src={game.image_url} alt={game.title} className="w-full h-48 object-cover" />
+                  <div className="p-4">
+                    <h4 className="font-semibold mb-1">{game.title}</h4>
+                    <p className="text-xs text-muted-foreground mb-3">{game.regions.length} bölge</p>
+                    <button
+                      onClick={() => handleDelete(game.id)}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Sil
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   )
