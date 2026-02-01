@@ -3,45 +3,21 @@
 import { useState, useRef, useEffect } from 'react'
 import { uploadToCloudinary } from '@/lib/cloudinary'
 import { createImageGame, getImageGames, deleteImageGame, getSubjects, getTopicsBySubject, ImageGame, ImageGameRegion } from '@/lib/supabase'
-import { Trash2, Square, Edit3, Pentagon, Move, X, Plus } from 'lucide-react'
+import { Trash2, Square, Edit3, Pentagon, X } from 'lucide-react'
 
 type DrawMode = 'rectangle' | 'freehand' | 'polygon'
+type GameMode = 'region' | 'text-cover'
 
 export function ImageGameTab() {
+  const [gameMode, setGameMode] = useState<GameMode>('region')
   const [games, setGames] = useState<ImageGame[]>([])
   const [subjects, setSubjects] = useState<any[]>([])
   const [topics, setTopics] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
-  
-  // Form states
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [selectedSubject, setSelectedSubject] = useState('')
-  const [selectedTopic, setSelectedTopic] = useState('')
-  const [imageUrl, setImageUrl] = useState('')
-  const [regions, setRegions] = useState<ImageGameRegion[]>([])
-  
-  // Drawing states
-  const [drawMode, setDrawMode] = useState<DrawMode>('rectangle')
-  const [isDrawing, setIsDrawing] = useState(false)
-  const [startPos, setStartPos] = useState({ x: 0, y: 0 })
-  const [currentRegion, setCurrentRegion] = useState<any>(null)
-  const [polygonPoints, setPolygonPoints] = useState<{x: number, y: number}[]>([])
-  const [freehandPoints, setFreehandPoints] = useState<{x: number, y: number}[]>([])
-  const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null)
-  
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const imageRef = useRef<HTMLImageElement>(null)
 
   useEffect(() => {
     loadData()
   }, [])
-
-  useEffect(() => {
-    if (selectedSubject) {
-      loadTopics(selectedSubject)
-    }
-  }, [selectedSubject])
 
   const loadData = async () => {
     try {
@@ -65,11 +41,124 @@ export function ImageGameTab() {
     }
   }
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('Bu oyunu silmek istediğinize emin misiniz?')) return
+
+    try {
+      await deleteImageGame(id)
+      loadData()
+    } catch (error) {
+      console.error('Error deleting game:', error)
+      alert('Oyun silinemedi')
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold mb-2">🖼️ Görsel Eşleştirme Oyunu</h2>
+        <p className="text-sm text-muted-foreground">İki farklı oyun modu ile görsel eşleştirme oyunu oluşturun</p>
+      </div>
+
+      {/* Mode Tabs */}
+      <div className="flex gap-2 border-b">
+        <button
+          onClick={() => setGameMode('region')}
+          className={`px-6 py-3 font-medium transition-all border-b-2 ${
+            gameMode === 'region'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          📍 Bölge İşaretleme
+        </button>
+        <button
+          onClick={() => setGameMode('text-cover')}
+          className={`px-6 py-3 font-medium transition-all border-b-2 ${
+            gameMode === 'text-cover'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          📝 Yazı Kapatma
+        </button>
+      </div>
+
+      {gameMode === 'region' ? (
+        <RegionMarkingMode
+          subjects={subjects}
+          topics={topics}
+          loading={loading}
+          onLoadTopics={loadTopics}
+          onReload={loadData}
+        />
+      ) : (
+        <TextCoverMode
+          subjects={subjects}
+          topics={topics}
+          loading={loading}
+          onLoadTopics={loadTopics}
+          onReload={loadData}
+        />
+      )}
+
+      {/* Games List */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Mevcut Oyunlar ({games.length})</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {games.map(game => (
+            <div key={game.id} className="bg-card border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+              <img src={game.image_url} alt={game.title} className="w-full h-48 object-cover" />
+              <div className="p-4">
+                <h4 className="font-semibold mb-1">{game.title}</h4>
+                <p className="text-xs text-muted-foreground mb-3">{game.regions.length} bölge</p>
+                <button
+                  onClick={() => handleDelete(game.id)}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Sil
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+// Region Marking Mode Component (Mevcut sistem)
+function RegionMarkingMode({ subjects, topics, loading, onLoadTopics, onReload }: any) {
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [selectedSubject, setSelectedSubject] = useState('')
+  const [selectedTopic, setSelectedTopic] = useState('')
+  const [imageUrl, setImageUrl] = useState('')
+  const [regions, setRegions] = useState<ImageGameRegion[]>([])
+  
+  const [drawMode, setDrawMode] = useState<DrawMode>('rectangle')
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [startPos, setStartPos] = useState({ x: 0, y: 0 })
+  const [currentRegion, setCurrentRegion] = useState<any>(null)
+  const [polygonPoints, setPolygonPoints] = useState<{x: number, y: number}[]>([])
+  const [freehandPoints, setFreehandPoints] = useState<{x: number, y: number}[]>([])
+  const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null)
+  
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const imageRef = useRef<HTMLImageElement>(null)
+
+  useEffect(() => {
+    if (selectedSubject) {
+      onLoadTopics(selectedSubject)
+    }
+  }, [selectedSubject])
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    setLoading(true)
     try {
       const url = await uploadToCloudinary(file)
       setImageUrl(url)
@@ -92,8 +181,6 @@ export function ImageGameTab() {
     } catch (error) {
       console.error('Upload error:', error)
       alert('Görsel yüklenemedi')
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -113,12 +200,10 @@ export function ImageGameTab() {
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     ctx.drawImage(img, 0, 0)
 
-    // Draw regions with thinner lines
     regions.forEach((region) => {
       const isSelected = selectedRegionId === region.id
       
       if (region.type === 'polygon' && region.points && region.points.length > 0) {
-        // Draw polygon with thin lines
         ctx.beginPath()
         ctx.moveTo(region.points[0].x, region.points[0].y)
         for (let i = 1; i < region.points.length; i++) {
@@ -133,12 +218,10 @@ export function ImageGameTab() {
         ctx.fillStyle = isSelected ? 'rgba(236, 72, 153, 0.15)' : 'rgba(139, 92, 246, 0.15)'
         ctx.fill()
         
-        // Draw label
         ctx.fillStyle = isSelected ? '#ec4899' : '#8b5cf6'
         ctx.font = 'bold 14px sans-serif'
         ctx.fillText(region.label, region.points[0].x + 5, region.points[0].y + 18)
       } else {
-        // Draw rectangle with thin lines
         ctx.strokeStyle = isSelected ? '#ec4899' : '#8b5cf6'
         ctx.lineWidth = isSelected ? 2.5 : 2
         ctx.strokeRect(region.x, region.y, region.width, region.height)
@@ -152,7 +235,6 @@ export function ImageGameTab() {
       }
     })
 
-    // Draw current rectangle
     if (currentRegion && drawMode === 'rectangle') {
       ctx.strokeStyle = '#10b981'
       ctx.lineWidth = 3
@@ -161,23 +243,19 @@ export function ImageGameTab() {
       ctx.setLineDash([])
     }
 
-    // Draw polygon points and lines
     if (drawMode === 'polygon' && polygonPoints.length > 0) {
-      // Draw points
       ctx.fillStyle = '#10b981'
       polygonPoints.forEach((point, index) => {
         ctx.beginPath()
         ctx.arc(point.x, point.y, 6, 0, Math.PI * 2)
         ctx.fill()
         
-        // Draw point number
         ctx.fillStyle = '#ffffff'
         ctx.font = 'bold 12px sans-serif'
         ctx.fillText((index + 1).toString(), point.x - 4, point.y + 4)
         ctx.fillStyle = '#10b981'
       })
       
-      // Draw lines between points
       if (polygonPoints.length > 1) {
         ctx.strokeStyle = '#10b981'
         ctx.lineWidth = 3
@@ -190,7 +268,6 @@ export function ImageGameTab() {
         ctx.stroke()
         ctx.setLineDash([])
         
-        // Draw closing line preview
         ctx.strokeStyle = '#10b981'
         ctx.lineWidth = 2
         ctx.setLineDash([2, 2])
@@ -202,7 +279,6 @@ export function ImageGameTab() {
       }
     }
     
-    // Draw freehand path
     if (drawMode === 'freehand' && freehandPoints.length > 0) {
       ctx.strokeStyle = '#10b981'
       ctx.lineWidth = 2
@@ -283,7 +359,6 @@ export function ImageGameTab() {
       setCurrentRegion(null)
       setSelectedRegionId(newRegion.id)
     } else if (drawMode === 'freehand' && freehandPoints.length > 10) {
-      // Convert freehand to polygon
       const xs = freehandPoints.map(p => p.x)
       const ys = freehandPoints.map(p => p.y)
       const minX = Math.min(...xs)
@@ -318,7 +393,6 @@ export function ImageGameTab() {
       return
     }
 
-    // Calculate bounding box for storage
     const xs = polygonPoints.map(p => p.x)
     const ys = polygonPoints.map(p => p.y)
     const minX = Math.min(...xs)
@@ -334,7 +408,7 @@ export function ImageGameTab() {
       y: minY,
       width: maxX - minX,
       height: maxY - minY,
-      points: polygonPoints // Store actual polygon points
+      points: polygonPoints
     }
 
     setRegions([...regions, newRegion])
@@ -359,7 +433,6 @@ export function ImageGameTab() {
       return
     }
 
-    setLoading(true)
     try {
       await createImageGame({
         subject_id: selectedSubject || undefined,
@@ -367,10 +440,11 @@ export function ImageGameTab() {
         title,
         description,
         image_url: imageUrl,
-        regions
+        regions,
+        game_type: 'region'
       })
 
-      alert('Görsel oyun oluşturuldu!')
+      alert('✅ Görsel oyun oluşturuldu!')
       
       setTitle('')
       setDescription('')
@@ -379,24 +453,10 @@ export function ImageGameTab() {
       setImageUrl('')
       setRegions([])
       
-      loadData()
-    } catch (error) {
+      onReload()
+    } catch (error: any) {
       console.error('Error creating game:', error)
-      alert('Oyun oluşturulamadı')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Bu oyunu silmek istediğinize emin misiniz?')) return
-
-    try {
-      await deleteImageGame(id)
-      loadData()
-    } catch (error) {
-      console.error('Error deleting game:', error)
-      alert('Oyun silinemedi')
+      alert('❌ Oyun oluşturulamadı: ' + (error?.message || 'Bilinmeyen hata'))
     }
   }
 
@@ -405,13 +465,7 @@ export function ImageGameTab() {
   }, [regions, currentRegion, polygonPoints, selectedRegionId])
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold mb-2">🖼️ Görsel Eşleştirme Oyunu</h2>
-        <p className="text-sm text-muted-foreground">Görsel yükle, bölgeleri işaretle ve etiketle</p>
-      </div>
-
-      {/* Basic Info */}
+    <>
       <div className="bg-card border rounded-lg p-6 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -444,7 +498,7 @@ export function ImageGameTab() {
               className="w-full px-3 py-2 border rounded-lg bg-background"
             >
               <option value="">Seçiniz</option>
-              {subjects.map(s => (
+              {subjects.map((s: any) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </select>
@@ -459,7 +513,7 @@ export function ImageGameTab() {
               disabled={!selectedSubject}
             >
               <option value="">Seçiniz</option>
-              {topics.map(t => (
+              {topics.map((t: any) => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>
@@ -477,13 +531,10 @@ export function ImageGameTab() {
         </div>
       </div>
 
-      {/* Editor */}
       {imageUrl && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Canvas */}
           <div className="lg:col-span-2">
             <div className="bg-card border rounded-lg p-4 space-y-4">
-              {/* Tools */}
               <div className="flex items-center gap-2 pb-4 border-b">
                 <button
                   onClick={() => {
@@ -548,7 +599,6 @@ export function ImageGameTab() {
                 )}
               </div>
 
-              {/* Canvas */}
               <div className="overflow-auto bg-neutral-100 dark:bg-neutral-900 rounded-lg p-4">
                 <img
                   ref={imageRef}
@@ -569,12 +619,9 @@ export function ImageGameTab() {
             </div>
           </div>
 
-          {/* Regions Sidebar */}
           <div className="space-y-4">
             <div className="bg-card border rounded-lg p-4">
-              <h3 className="font-semibold mb-4 flex items-center justify-between">
-                <span>Bölgeler ({regions.length})</span>
-              </h3>
+              <h3 className="font-semibold mb-4">Bölgeler ({regions.length})</h3>
               
               <div className="space-y-2 max-h-[500px] overflow-y-auto">
                 {regions.map((region) => (
@@ -628,29 +675,396 @@ export function ImageGameTab() {
           </div>
         </div>
       )}
+    </>
+  )
+}
 
-      {/* Games List */}
-      <div>
-        <h3 className="text-lg font-semibold mb-4">Mevcut Oyunlar ({games.length})</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {games.map(game => (
-            <div key={game.id} className="bg-card border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
-              <img src={game.image_url} alt={game.title} className="w-full h-48 object-cover" />
-              <div className="p-4">
-                <h4 className="font-semibold mb-1">{game.title}</h4>
-                <p className="text-xs text-muted-foreground mb-3">{game.regions.length} bölge</p>
-                <button
-                  onClick={() => handleDelete(game.id)}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Sil
-                </button>
-              </div>
-            </div>
-          ))}
+
+// Text Cover Mode Component (Yeni sistem - Yazıları kapat)
+function TextCoverMode({ subjects, topics, loading, onLoadTopics, onReload }: any) {
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [selectedSubject, setSelectedSubject] = useState('')
+  const [selectedTopic, setSelectedTopic] = useState('')
+  const [imageUrl, setImageUrl] = useState('')
+  const [textBoxes, setTextBoxes] = useState<ImageGameRegion[]>([])
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+  const [currentBox, setCurrentBox] = useState<any>(null)
+  const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null)
+  
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const imageRef = useRef<HTMLImageElement>(null)
+
+  useEffect(() => {
+    if (selectedSubject) {
+      onLoadTopics(selectedSubject)
+    }
+  }, [selectedSubject])
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      const url = await uploadToCloudinary(file)
+      setImageUrl(url)
+      
+      setTimeout(() => {
+        const img = imageRef.current
+        const canvas = canvasRef.current
+        if (img && canvas) {
+          img.onload = () => {
+            const ctx = canvas.getContext('2d')
+            if (ctx) {
+              canvas.width = img.naturalWidth
+              canvas.height = img.naturalHeight
+              ctx.drawImage(img, 0, 0)
+            }
+          }
+          img.src = url
+        }
+      }, 100)
+    } catch (error) {
+      console.error('Upload error:', error)
+      alert('Görsel yüklenemedi')
+    }
+  }
+
+  const drawCanvas = () => {
+    const canvas = canvasRef.current
+    const img = imageRef.current
+    if (!canvas || !img || !img.complete) return
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    if (canvas.width === 0 || canvas.height === 0) {
+      canvas.width = img.naturalWidth || img.width
+      canvas.height = img.naturalHeight || img.height
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.drawImage(img, 0, 0)
+
+    // Draw white boxes covering text
+    textBoxes.forEach((box) => {
+      const isSelected = selectedBoxId === box.id
+      
+      // White cover box
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(box.x, box.y, box.width, box.height)
+      
+      // Border
+      ctx.strokeStyle = isSelected ? '#ec4899' : '#8b5cf6'
+      ctx.lineWidth = isSelected ? 3 : 2
+      ctx.strokeRect(box.x, box.y, box.width, box.height)
+      
+      // Label number
+      ctx.fillStyle = isSelected ? '#ec4899' : '#8b5cf6'
+      ctx.font = 'bold 16px sans-serif'
+      ctx.fillText(`${textBoxes.indexOf(box) + 1}`, box.x + 5, box.y + 20)
+    })
+
+    // Draw current box being created
+    if (currentBox) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'
+      ctx.fillRect(currentBox.x, currentBox.y, currentBox.width, currentBox.height)
+      
+      ctx.strokeStyle = '#10b981'
+      ctx.lineWidth = 3
+      ctx.setLineDash([5, 5])
+      ctx.strokeRect(currentBox.x, currentBox.y, currentBox.width, currentBox.height)
+      ctx.setLineDash([])
+    }
+  }
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    const x = (e.clientX - rect.left) * scaleX
+    const y = (e.clientY - rect.top) * scaleY
+
+    setIsDragging(true)
+    setDragStart({ x, y })
+  }
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDragging) return
+
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    const x = (e.clientX - rect.left) * scaleX
+    const y = (e.clientY - rect.top) * scaleY
+
+    const width = x - dragStart.x
+    const height = y - dragStart.y
+
+    setCurrentBox({
+      id: Date.now().toString(),
+      label: '',
+      x: dragStart.x,
+      y: dragStart.y,
+      width,
+      height,
+      type: 'rectangle' as const
+    })
+
+    drawCanvas()
+  }
+
+  const handleMouseUp = () => {
+    if (!isDragging || !currentBox) return
+    
+    setIsDragging(false)
+    
+    // Only add if box has reasonable size
+    if (Math.abs(currentBox.width) > 20 && Math.abs(currentBox.height) > 20) {
+      const newBox = {
+        ...currentBox,
+        label: `Etiket ${textBoxes.length + 1}`,
+        // Normalize negative dimensions
+        x: currentBox.width < 0 ? currentBox.x + currentBox.width : currentBox.x,
+        y: currentBox.height < 0 ? currentBox.y + currentBox.height : currentBox.y,
+        width: Math.abs(currentBox.width),
+        height: Math.abs(currentBox.height)
+      }
+      setTextBoxes([...textBoxes, newBox])
+      setSelectedBoxId(newBox.id)
+    }
+    
+    setCurrentBox(null)
+    drawCanvas()
+  }
+
+  const updateBoxLabel = (id: string, label: string) => {
+    setTextBoxes(textBoxes.map(b => b.id === id ? { ...b, label } : b))
+  }
+
+  const removeBox = (id: string) => {
+    setTextBoxes(textBoxes.filter(b => b.id !== id))
+    if (selectedBoxId === id) setSelectedBoxId(null)
+    setTimeout(drawCanvas, 0)
+  }
+
+  const handleSubmit = async () => {
+    if (!title || !imageUrl || textBoxes.length === 0) {
+      alert('Lütfen tüm alanları doldurun ve en az bir yazı kapatın')
+      return
+    }
+
+    // Check if all boxes have labels
+    const hasEmptyLabels = textBoxes.some(b => !b.label.trim())
+    if (hasEmptyLabels) {
+      alert('Lütfen tüm kapatılmış alanlara etiket girin')
+      return
+    }
+
+    try {
+      await createImageGame({
+        subject_id: selectedSubject || undefined,
+        topic_id: selectedTopic || undefined,
+        title,
+        description,
+        image_url: imageUrl,
+        regions: textBoxes,
+        game_type: 'text-cover'
+      })
+
+      alert('✅ Görsel oyun oluşturuldu!')
+      
+      setTitle('')
+      setDescription('')
+      setSelectedSubject('')
+      setSelectedTopic('')
+      setImageUrl('')
+      setTextBoxes([])
+      
+      onReload()
+    } catch (error: any) {
+      console.error('Error creating game:', error)
+      alert('❌ Oyun oluşturulamadı: ' + (error?.message || 'Bilinmeyen hata'))
+    }
+  }
+
+  useEffect(() => {
+    drawCanvas()
+  }, [textBoxes, currentBox, selectedBoxId])
+
+  return (
+    <>
+      <div className="bg-card border rounded-lg p-6 space-y-4">
+        <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg p-4">
+          <p className="text-sm text-blue-700 dark:text-blue-300">
+            💡 <strong>Yazı Kapatma Modu:</strong> Görseldeki yazıları beyaz kutucuklarla kapatın. 
+            Oyuncular bu kapatılmış alanlara doğru etiketleri sürükleyip bırakacak.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Oyun Başlığı *</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg bg-background"
+              placeholder="Örn: Göz Anatomisi"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Açıklama</label>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg bg-background"
+              placeholder="Kısa açıklama"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Ders</label>
+            <select
+              value={selectedSubject}
+              onChange={(e) => setSelectedSubject(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg bg-background"
+            >
+              <option value="">Seçiniz</option>
+              {subjects.map((s: any) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Konu</label>
+            <select
+              value={selectedTopic}
+              onChange={(e) => setSelectedTopic(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg bg-background"
+              disabled={!selectedSubject}
+            >
+              <option value="">Seçiniz</option>
+              {topics.map((t: any) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Görsel Yükle *</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="w-full px-3 py-2 border rounded-lg bg-background"
+          />
         </div>
       </div>
-    </div>
+
+      {imageUrl && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <div className="bg-card border rounded-lg p-4 space-y-4">
+              <div className="pb-4 border-b">
+                <p className="text-sm text-muted-foreground">
+                  🖱️ Görseldeki yazıların üzerine sürükleyerek beyaz kutucuklar çizin
+                </p>
+              </div>
+
+              <div className="overflow-auto bg-neutral-100 dark:bg-neutral-900 rounded-lg p-4">
+                <img
+                  ref={imageRef}
+                  src={imageUrl}
+                  alt="Preview"
+                  className="absolute opacity-0 pointer-events-none"
+                  crossOrigin="anonymous"
+                />
+                <canvas
+                  ref={canvasRef}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  className="cursor-crosshair shadow-lg w-full"
+                  style={{ minHeight: '500px' }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="bg-card border rounded-lg p-4">
+              <h3 className="font-semibold mb-4">
+                Kapatılmış Yazılar ({textBoxes.length})
+              </h3>
+              
+              <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                {textBoxes.map((box, index) => (
+                  <div
+                    key={box.id}
+                    className={`p-3 rounded-lg border-2 transition-all ${
+                      selectedBoxId === box.id
+                        ? 'border-pink-500 bg-pink-50 dark:bg-pink-500/10'
+                        : 'border-purple-200 dark:border-purple-500/20 bg-purple-50 dark:bg-purple-500/5'
+                    }`}
+                    onClick={() => setSelectedBoxId(box.id)}
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="text-xs font-bold text-muted-foreground mt-2">
+                        {index + 1}
+                      </span>
+                      <input
+                        type="text"
+                        value={box.label}
+                        onChange={(e) => updateBoxLabel(box.id, e.target.value)}
+                        className="flex-1 px-2 py-1 text-sm border rounded bg-background"
+                        placeholder="Etiket adı (örn: İris)"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removeBox(box.id)
+                        }}
+                        className="p-1 text-red-500 hover:bg-red-500/10 rounded"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                
+                {textBoxes.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Henüz yazı kapatılmadı.<br/>
+                    Görseldeki yazıların üzerine<br/>
+                    kutucuk çizin.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={handleSubmit}
+              disabled={loading || !title || !imageUrl || textBoxes.length === 0}
+              className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Oluşturuluyor...' : '✨ Oyunu Kaydet'}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   )
 }

@@ -393,6 +393,7 @@ export interface ImageGame {
   description?: string
   image_url: string
   regions: ImageGameRegion[]
+  game_type?: 'region' | 'text-cover'
   created_at: string
   updated_at: string
 }
@@ -404,14 +405,39 @@ export async function createImageGame(data: {
   description?: string
   image_url: string
   regions: ImageGameRegion[]
+  game_type?: 'region' | 'text-cover'
 }) {
+  // Try with game_type first
+  let insertData: any = { ...data }
+  
   const { data: game, error } = await supabase
     .from('image_games')
-    .insert([data])
+    .insert([insertData])
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    // If error is about game_type column not existing, try without it
+    if (error.message?.includes('game_type') || error.code === '42703') {
+      console.warn('game_type column not found, trying without it. Please run migration!')
+      const { game_type, ...dataWithoutGameType } = insertData
+      
+      const { data: gameRetry, error: errorRetry } = await supabase
+        .from('image_games')
+        .insert([dataWithoutGameType])
+        .select()
+        .single()
+      
+      if (errorRetry) {
+        console.error('Supabase error:', errorRetry)
+        throw errorRetry
+      }
+      return gameRetry
+    }
+    
+    console.error('Supabase error:', error)
+    throw error
+  }
   return game
 }
 

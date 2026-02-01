@@ -318,10 +318,14 @@ CREATE TABLE IF NOT EXISTS image_games (
   description TEXT,
   image_url TEXT NOT NULL,
   regions JSONB NOT NULL DEFAULT '[]', -- [{id, label, x, y, width, height}]
+  game_type TEXT DEFAULT 'region', -- 'region' or 'text-cover'
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  CONSTRAINT valid_game_type CHECK (game_type IN ('region', 'text-cover'))
 );
 
 -- Index for faster queries
 CREATE INDEX IF NOT EXISTS idx_image_games_subject ON image_games(subject_id);
 CREATE INDEX IF NOT EXISTS idx_image_games_topic ON image_games(topic_id);
+CREATE INDEX IF NOT EXISTS idx_image_games_type ON image_games(game_type);

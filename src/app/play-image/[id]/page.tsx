@@ -131,6 +131,9 @@ export default function PlayImageGamePage() {
     // Draw image at full size
     ctx.drawImage(img, 0, 0)
 
+    // Check if this is text-cover mode
+    const isTextCoverMode = game.game_type === 'text-cover'
+
     game.regions.forEach((region) => {
       const isSelected = !!selectedRegions[region.id]
       const isHovered = hoveredRegion === region.id
@@ -145,6 +148,12 @@ export default function PlayImageGamePage() {
           ctx.lineTo(region.points[i].x, region.points[i].y)
         }
         ctx.closePath()
+        
+        // For text-cover mode, draw white background first
+        if (isTextCoverMode && !showCorrectAnswers) {
+          ctx.fillStyle = '#ffffff'
+          ctx.fill()
+        }
         
         if (showCorrectAnswers) {
           if (isCorrect) {
@@ -174,8 +183,10 @@ export default function PlayImageGamePage() {
           ctx.strokeStyle = color.stroke
           ctx.lineWidth = 4
           ctx.stroke()
-          ctx.fillStyle = color.fill
-          ctx.fill()
+          if (!isTextCoverMode) {
+            ctx.fillStyle = color.fill
+            ctx.fill()
+          }
           
           ctx.fillStyle = color.text
           ctx.font = 'bold 16px sans-serif'
@@ -184,14 +195,22 @@ export default function PlayImageGamePage() {
           ctx.strokeStyle = '#fbbf24'
           ctx.lineWidth = 4
           ctx.stroke()
-          ctx.fillStyle = 'rgba(251, 191, 36, 0.3)'
-          ctx.fill()
+          if (!isTextCoverMode) {
+            ctx.fillStyle = 'rgba(251, 191, 36, 0.3)'
+            ctx.fill()
+          }
         } else {
           ctx.strokeStyle = '#9ca3af'
           ctx.lineWidth = 3
           ctx.stroke()
         }
       } else {
+        // For text-cover mode, draw white background first
+        if (isTextCoverMode && !showCorrectAnswers) {
+          ctx.fillStyle = '#ffffff'
+          ctx.fillRect(region.x, region.y, region.width, region.height)
+        }
+        
         if (showCorrectAnswers) {
           if (isCorrect) {
             ctx.strokeStyle = '#10b981'
@@ -220,8 +239,10 @@ export default function PlayImageGamePage() {
           ctx.strokeStyle = color.stroke
           ctx.lineWidth = 4
           ctx.strokeRect(region.x, region.y, region.width, region.height)
-          ctx.fillStyle = color.fill
-          ctx.fillRect(region.x, region.y, region.width, region.height)
+          if (!isTextCoverMode) {
+            ctx.fillStyle = color.fill
+            ctx.fillRect(region.x, region.y, region.width, region.height)
+          }
           
           ctx.fillStyle = color.text
           ctx.font = 'bold 16px sans-serif'
@@ -230,8 +251,10 @@ export default function PlayImageGamePage() {
           ctx.strokeStyle = '#fbbf24'
           ctx.lineWidth = 4
           ctx.strokeRect(region.x, region.y, region.width, region.height)
-          ctx.fillStyle = 'rgba(251, 191, 36, 0.3)'
-          ctx.fillRect(region.x, region.y, region.width, region.height)
+          if (!isTextCoverMode) {
+            ctx.fillStyle = 'rgba(251, 191, 36, 0.3)'
+            ctx.fillRect(region.x, region.y, region.width, region.height)
+          }
         } else {
           ctx.strokeStyle = '#9ca3af'
           ctx.lineWidth = 3
