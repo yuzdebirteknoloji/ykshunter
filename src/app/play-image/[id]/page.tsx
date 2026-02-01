@@ -149,10 +149,18 @@ export default function PlayImageGamePage() {
         }
         ctx.closePath()
         
-        // For text-cover mode, draw white background first
+        // For text-cover mode, draw opaque white background to cover text completely
         if (isTextCoverMode && !showCorrectAnswers) {
+          // Use source-over to ensure complete coverage
+          ctx.globalCompositeOperation = 'source-over'
           ctx.fillStyle = '#ffffff'
           ctx.fill()
+          // Add multiple layers for better coverage
+          ctx.fill()
+          // Add a subtle border
+          ctx.strokeStyle = '#d1d5db'
+          ctx.lineWidth = 1
+          ctx.stroke()
         }
         
         if (showCorrectAnswers) {
@@ -205,10 +213,18 @@ export default function PlayImageGamePage() {
           ctx.stroke()
         }
       } else {
-        // For text-cover mode, draw white background first
+        // For text-cover mode, draw opaque white background to cover text completely
         if (isTextCoverMode && !showCorrectAnswers) {
+          // Use source-over to ensure complete coverage
+          ctx.globalCompositeOperation = 'source-over'
           ctx.fillStyle = '#ffffff'
           ctx.fillRect(region.x, region.y, region.width, region.height)
+          // Add multiple layers for better coverage
+          ctx.fillRect(region.x, region.y, region.width, region.height)
+          // Add a subtle border
+          ctx.strokeStyle = '#d1d5db'
+          ctx.lineWidth = 1
+          ctx.strokeRect(region.x, region.y, region.width, region.height)
         }
         
         if (showCorrectAnswers) {
