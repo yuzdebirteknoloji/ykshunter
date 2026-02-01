@@ -5,53 +5,45 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Play } from 'lucide-react'
-import { getSubjects, getTopicsBySubject, type Subject, type Topic } from '@/lib/supabase'
-import { LoadingGrid, LoadingSpinner } from '@/components/loading-card'
+import { useSubjects, useTopics, usePrefetchTopics, usePrefetchQuestionSets } from '@/hooks/use-queries'
+import type { Subject } from '@/lib/supabase'
+import { TopicCardSkeleton } from '@/components/skeleton-loader'
 import { EmptyState } from '@/components/empty-state'
-import { toast } from 'sonner'
 
 export default function TopicsPage() {
   const router = useRouter()
-  const [subjects, setSubjects] = useState<Subject[]>([])
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
-  const [topics, setTopics] = useState<Topic[]>([])
-  const [loading, setLoading] = useState(true)
+  
+  const { data: subjects = [], isLoading: subjectsLoading } = useSubjects()
+  const { data: topics = [], isLoading: topicsLoading } = useTopics(selectedSubject?.id || '')
+  
+  const prefetchTopics = usePrefetchTopics()
+  const prefetchQuestions = usePrefetchQuestionSets()
 
   useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
-    try {
-      const subjectsData = await getSubjects()
-      setSubjects(subjectsData)
+    if (subjects.length > 0 && !selectedSubject) {
+      setSelectedSubject(subjects[0])
       
-      if (subjectsData.length > 0) {
-        setSelectedSubject(subjectsData[0])
-        const topicsData = await getTopicsBySubject(subjectsData[0].id)
-        setTopics(topicsData)
-      }
-    } catch (error) {
-      console.error('Error loading data:', error)
-    } finally {
-      setLoading(false)
+      // Prefetch other subjects
+      subjects.slice(1, 4).forEach(subject => {
+        prefetchTopics(subject.id)
+      })
     }
-  }
+  }, [subjects, selectedSubject, prefetchTopics])
 
-  const handleSubjectChange = async (subject: Subject) => {
+  const handleSubjectChange = (subject: Subject) => {
     setSelectedSubject(subject)
-    setLoading(true)
-    try {
-      const topicsData = await getTopicsBySubject(subject.id)
-      setTopics(topicsData)
-    } catch (error) {
-      console.error('Error loading topics:', error)
-    } finally {
-      setLoading(false)
-    }
+  }
+  
+  const handleSubjectHover = (subject: Subject) => {
+    prefetchTopics(subject.id)
+  }
+  
+  const handleTopicHover = (topicId: string) => {
+    prefetchQuestions(topicId)
   }
 
-  if (loading && !selectedSubject) {
+  if (subjectsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-foreground">Yükleniyor...</div>
@@ -84,6 +76,7 @@ export default function TopicsPage() {
               <button
                 key={subject.id}
                 onClick={() => handleSubjectChange(subject)}
+                onMouseEnter={() => handleSubjectHover(subject)}
                 className={`px-3 md:px-4 py-2 rounded-lg border-2 transition-all whitespace-nowrap text-sm md:text-base ${
                   selectedSubject?.id === subject.id
                     ? 'border-primary bg-primary/10 text-primary'
@@ -103,9 +96,11 @@ export default function TopicsPage() {
         </div>
 
         {/* Topics Grid */}
-        {loading ? (
-          <div className="text-center text-muted-foreground py-12">
-            Konular yükleniyor...
+        {topicsLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+            {[...Array(4)].map((_, i) => (
+              <TopicCardSkeleton key={i} />
+            ))}
           </div>
         ) : topics.length === 0 ? (
           <div className="text-center py-12">
@@ -128,7 +123,10 @@ export default function TopicsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
               >
-                <Link href={`/topic/${topic.id}`}>
+                <Link 
+                  href={`/topic/${topic.id}`}
+                  onMouseEnter={() => handleTopicHover(topic.id)}
+                >
                   <div className="group bg-card rounded-lg p-4 md:p-6 border border-border hover:border-accent transition-all cursor-pointer h-full">
                     {/* Title */}
                     <h3 className="text-lg md:text-xl font-semibold text-foreground group-hover:text-primary transition-colors mb-3 md:mb-4">
@@ -159,8 +157,6 @@ export default function TopicsPage() {
             ))}
           </div>
         )}
-
-      
       </div>
     </div>
   )

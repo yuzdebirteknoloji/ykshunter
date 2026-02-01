@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Play } from 'lucide-react'
 import { getTopicById, getQuestionSetsByTopic, getImageGames, type QuestionSet, type ImageGame } from '@/lib/supabase'
+import { prefetchTopicQuestions } from '@/lib/prefetch'
 
 export default function TopicDetailPage() {
   const params = useParams()
@@ -18,10 +19,13 @@ export default function TopicDetailPage() {
 
   useEffect(() => {
     loadData()
+    // Prefetch questions immediately
+    prefetchTopicQuestions(topicId)
   }, [topicId])
 
   const loadData = async () => {
     try {
+      // Load in parallel for faster initial render
       const [topicData, setsData, allImageGames] = await Promise.all([
         getTopicById(topicId),
         getQuestionSetsByTopic(topicId),

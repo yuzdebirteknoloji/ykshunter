@@ -29,10 +29,14 @@ export function AnnouncementsDisplay({ open }: { open: boolean }) {
   const loadAnnouncements = async () => {
     try {
       const response = await fetch('/api/announcements')
+      if (!response.ok) {
+        console.log('Failed to load announcements')
+        return
+      }
       const { data } = await response.json()
       setAnnouncements(data || [])
     } catch (error) {
-      console.error('Error loading announcements:', error)
+      console.log('Error loading announcements:', error)
     }
   }
 

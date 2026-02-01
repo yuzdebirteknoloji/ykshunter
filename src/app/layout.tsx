@@ -2,6 +2,7 @@
 
 import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
+import { QueryProvider } from '@/providers/query-provider'
 import { Sidebar, SidebarBody, SidebarLink } from '@/components/ui/sidebar'
 import { Home, Gamepad2, Settings, User, Moon, Sun, LogOut, LayoutDashboard } from 'lucide-react'
 import { useState, useEffect } from 'react'
@@ -52,13 +53,18 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     
     // Kullanıcı bilgisini al
     fetch('/api/auth/me')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Auth failed')
+        return res.json()
+      })
       .then(data => {
         if (data.user) {
           setUser(data.user)
         }
       })
-      .catch(() => {})
+      .catch((error) => {
+        console.log('Auth check failed:', error)
+      })
   }, [mounted])
 
   const handleLogout = async () => {
@@ -231,15 +237,17 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
       </head>
       <body>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem={true}
-          disableTransitionOnChange
-        >
-          <LayoutContent>{children}</LayoutContent>
-          <Toaster position="top-right" richColors closeButton />
-        </ThemeProvider>
+        <QueryProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem={true}
+            disableTransitionOnChange
+          >
+            <LayoutContent>{children}</LayoutContent>
+            <Toaster position="top-right" richColors closeButton />
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   )

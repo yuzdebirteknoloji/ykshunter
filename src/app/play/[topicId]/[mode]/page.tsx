@@ -26,6 +26,30 @@ export default function PlayPage() {
     loadGame()
   }, [topicId, mode])
 
+  // Yeni set yüklendiğinde oyunu başlat
+  useEffect(() => {
+    if (allQuestionSets.length > 0 && topic) {
+      const currentSet = allQuestionSets[currentSetIndex]
+      if (currentSet && currentSet.data) {
+        const game = {
+          id: `${topicId}-${mode}`,
+          title: topic.name,
+          mode: mode,
+          data: currentSet.data
+        }
+        
+        console.log('Loading set from useEffect:', {
+          currentSetIndex,
+          totalSets: allQuestionSets.length,
+          currentSet
+        })
+        
+        setQuestionSetData(currentSet)
+        setState(GameEngine.initializeGame(game as any, currentSet.is_random))
+      }
+    }
+  }, [currentSetIndex, allQuestionSets.length])
+
   const loadGame = async () => {
     try {
       const [topicData, questionSets] = await Promise.all([
@@ -44,18 +68,6 @@ export default function PlayPage() {
       // İlk seti seç (veya rastgele birinden başla)
       const initialIndex = Math.floor(Math.random() * questionSets.length)
       setCurrentSetIndex(initialIndex)
-      const initialSet = questionSets[initialIndex]
-      setQuestionSetData(initialSet)
-      
-      // Create game object from database data
-      const game = {
-        id: `${topicId}-${mode}`,
-        title: topicData.name,
-        mode: mode,
-        data: initialSet.data
-      }
-      
-      setState(GameEngine.initializeGame(game as any, initialSet.is_random))
     } catch (error) {
       console.error('Error loading game:', error)
     } finally {
@@ -389,13 +401,15 @@ export default function PlayPage() {
                         })
                         setState({
                           ...state,
-                          userMatches: correctMatches
+                          userMatches: correctMatches,
+                          mistakes: 0
                         })
                       } else if (state.mode === 'sequence') {
                         // Sıralama oyununda tüm sıralamayı sıfırla
                         setState({
                           ...state,
-                          userOrder: []
+                          userOrder: [],
+                          mistakes: 0
                         })
                       } else if (state.mode === 'grouping') {
                         // Doğru kategorideki öğeleri koru, yanlışları kaldır
@@ -409,7 +423,8 @@ export default function PlayPage() {
                         })
                         setState({
                           ...state,
-                          userAssignments: correctAssignments
+                          userAssignments: correctAssignments,
+                          mistakes: 0
                         })
                       }
                       setShowResult(false)
@@ -421,19 +436,20 @@ export default function PlayPage() {
                   </button>
                   <button
                     onClick={() => {
-                      const nextIndex = (currentSetIndex + 1) % allQuestionSets.length
-                      const nextSet = allQuestionSets[nextIndex]
-                      
-                      const game = {
-                        id: `${topicId}-${mode}`,
-                        title: topic.name,
-                        mode: mode,
-                        data: nextSet.data
+                      if (allQuestionSets.length === 0) {
+                        console.error('No question sets available')
+                        return
                       }
                       
-                      setQuestionSetData(nextSet)
+                      const nextIndex = (currentSetIndex + 1) % allQuestionSets.length
+                      
+                      console.log('Next set button clicked:', {
+                        currentIndex: currentSetIndex,
+                        nextIndex,
+                        totalSets: allQuestionSets.length
+                      })
+                      
                       setCurrentSetIndex(nextIndex)
-                      setState(GameEngine.initializeGame(game as any, nextSet.is_random))
                       setShowResult(false)
                       setShowCorrectAnswers(false)
                     }}

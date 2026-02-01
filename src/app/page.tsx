@@ -11,8 +11,9 @@ import {
   Play,
   ChevronRight
 } from 'lucide-react'
-import { getSubjects, type Subject } from '@/lib/supabase'
-import { LoadingGrid } from '@/components/loading-card'
+import { useSubjects, usePrefetchTopics } from '@/hooks/use-queries'
+import type { Subject } from '@/lib/supabase'
+import { SubjectCardSkeleton } from '@/components/skeleton-loader'
 import { EmptyState } from '@/components/empty-state'
 import { toast } from 'sonner'
 
@@ -24,40 +25,47 @@ const stats = {
 
 export default function HomePage() {
   const [user, setUser] = useState<any>(null)
-  const [subjects, setSubjects] = useState<Subject[]>([])
-  const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
+  
+  const { data: subjects = [], isLoading } = useSubjects()
+  const prefetchTopics = usePrefetchTopics()
 
   useEffect(() => {
-    loadData()
+    setMounted(true)
   }, [])
 
-  const loadData = async () => {
-    try {
-      // Kullanıcı bilgisini al
-      const userRes = await fetch('/api/auth/me')
-      const userData = await userRes.json()
-      if (userData.user) {
-        setUser(userData.user)
-      }
-
-      // Dersleri al
-      const subjectsData = await getSubjects()
-      setSubjects(subjectsData)
-    } catch (error) {
-      console.error('Error loading data:', error)
-      toast.error('Veriler yüklenirken bir hata oluştu')
-    } finally {
-      setLoading(false)
+  useEffect(() => {
+    if (!mounted) return
+    
+    // Kullanıcı bilgisini al
+    fetch('/api/auth/me')
+      .then(res => {
+        if (!res.ok) throw new Error('Auth failed')
+        return res.json()
+      })
+      .then(data => {
+        if (data.user) {
+          setUser(data.user)
+        }
+      })
+      .catch((error) => {
+        console.log('Auth check failed:', error)
+      })
+  }, [mounted])
+  
+  useEffect(() => {
+    // Prefetch first 3 subjects
+    if (subjects.length > 0) {
+      subjects.slice(0, 3).forEach(subject => {
+        prefetchTopics(subject.id)
+      })
     }
-  }
+  }, [subjects, prefetchTopics])
 
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="p-6 md:p-10">
-        {/* Stats Cards */}
-    
-
         {/* Dersler */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -72,8 +80,12 @@ export default function HomePage() {
           </div>
         </div>
 
-        {loading ? (
-          <LoadingGrid count={6} />
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <SubjectCardSkeleton key={i} />
+            ))}
+          </div>
         ) : subjects.length === 0 ? (
           <EmptyState
             icon="📚"
@@ -95,8 +107,9 @@ export default function HomePage() {
                 key={subject.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: index * 0.05 }}
                 whileHover={{ y: -2 }}
+                onMouseEnter={() => prefetchTopics(subject.id)}
                 onClick={() => router.push('/games')}
                 className="bg-card rounded-lg p-6 border border-border cursor-pointer group"
               >
@@ -120,8 +133,6 @@ export default function HomePage() {
             ))}
           </div>
         )}
-
-      
       </div>
     </div>
   )

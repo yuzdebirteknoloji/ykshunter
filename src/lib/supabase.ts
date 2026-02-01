@@ -1,17 +1,32 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-export const supabase = createSupabaseClient(supabaseUrl, supabaseKey)
+// Check if Supabase is configured
+const isSupabaseConfigured = supabaseUrl && supabaseKey && supabaseUrl !== 'https://placeholder.supabase.co'
+
+// Create client with fallback
+const supabaseClient = isSupabaseConfigured 
+  ? createSupabaseClient(supabaseUrl, supabaseKey)
+  : createSupabaseClient('https://placeholder.supabase.co', 'placeholder-key')
+
+export const supabase = supabaseClient
 
 // Export createClient for API routes
 export function createClient() {
+  if (!isSupabaseConfigured) {
+    throw new Error('Supabase is not configured')
+  }
   return createSupabaseClient(supabaseUrl, supabaseKey)
 }
 
 // Mock mode check
-const isMockMode = !process.env.NEXT_PUBLIC_SUPABASE_URL
+const isMockMode = !isSupabaseConfigured
+
+if (isMockMode && typeof window !== 'undefined') {
+  console.warn('⚠️ Running in MOCK MODE - Supabase not configured')
+}
 
 export type GameMode = 'sequence' | 'grouping' | 'matching'
 
@@ -82,10 +97,35 @@ const mockTopics: Topic[] = [
 
 const mockQuestionSets: QuestionSet[] = []
 
-// Helper functions
+// Helper functions with caching
+import { dataCache } from './cache'
+
 export async function getSubjects() {
+  const cacheKey = 'subjects:all'
+  
+  // Return cached data immediately if available
+  const cached = dataCache.get<Subject[]>(cacheKey)
+  if (cached) {
+    // Revalidate in background if stale
+    if (dataCache.isStale(cacheKey)) {
+      fetchSubjects().then(data => dataCache.set(cacheKey, data))
+    }
+    return cached
+  }
+  
+  // Fetch fresh data
+  const data = await fetchSubjects()
+  dataCache.set(cacheKey, data)
+  return data
+}
+
+async function fetchSubjects() {
   if (isMockMode) {
-    return Promise.resolve(mockSubjects)
+    return mockSubjects
+  }
+  
+  if (!supabase) {
+    throw new Error('Supabase client not initialized')
   }
   
   const { data, error } = await supabase
@@ -98,8 +138,28 @@ export async function getSubjects() {
 }
 
 export async function getTopicsBySubject(subjectId: string) {
+  const cacheKey = `topics:${subjectId}`
+  
+  const cached = dataCache.get<Topic[]>(cacheKey)
+  if (cached) {
+    if (dataCache.isStale(cacheKey)) {
+      fetchTopicsBySubject(subjectId).then(data => dataCache.set(cacheKey, data))
+    }
+    return cached
+  }
+  
+  const data = await fetchTopicsBySubject(subjectId)
+  dataCache.set(cacheKey, data)
+  return data
+}
+
+async function fetchTopicsBySubject(subjectId: string) {
   if (isMockMode) {
-    return Promise.resolve(mockTopics.filter(t => t.subject_id === subjectId))
+    return mockTopics.filter(t => t.subject_id === subjectId)
+  }
+  
+  if (!supabase) {
+    throw new Error('Supabase client not initialized')
   }
   
   const { data, error } = await supabase
@@ -113,8 +173,28 @@ export async function getTopicsBySubject(subjectId: string) {
 }
 
 export async function getQuestionSetsByTopic(topicId: string) {
+  const cacheKey = `questions:${topicId}`
+  
+  const cached = dataCache.get<QuestionSet[]>(cacheKey)
+  if (cached) {
+    if (dataCache.isStale(cacheKey)) {
+      fetchQuestionSetsByTopic(topicId).then(data => dataCache.set(cacheKey, data))
+    }
+    return cached
+  }
+  
+  const data = await fetchQuestionSetsByTopic(topicId)
+  dataCache.set(cacheKey, data)
+  return data
+}
+
+async function fetchQuestionSetsByTopic(topicId: string) {
   if (isMockMode) {
-    return Promise.resolve(mockQuestionSets.filter(q => q.topic_id === topicId))
+    return mockQuestionSets.filter(q => q.topic_id === topicId)
+  }
+  
+  if (!supabase) {
+    throw new Error('Supabase client not initialized')
   }
   
   const { data, error } = await supabase
@@ -127,8 +207,28 @@ export async function getQuestionSetsByTopic(topicId: string) {
 }
 
 export async function getTopicById(topicId: string) {
+  const cacheKey = `topic:${topicId}`
+  
+  const cached = dataCache.get<any>(cacheKey)
+  if (cached) {
+    if (dataCache.isStale(cacheKey)) {
+      fetchTopicById(topicId).then(data => dataCache.set(cacheKey, data))
+    }
+    return cached
+  }
+  
+  const data = await fetchTopicById(topicId)
+  dataCache.set(cacheKey, data)
+  return data
+}
+
+async function fetchTopicById(topicId: string) {
   if (isMockMode) {
-    return Promise.resolve(mockTopics.find(t => t.id === topicId) || null)
+    return mockTopics.find(t => t.id === topicId) || null
+  }
+  
+  if (!supabase) {
+    throw new Error('Supabase client not initialized')
   }
   
   const { data, error } = await supabase
@@ -146,13 +246,20 @@ export async function getQuestionSetsByTopicAndMode(topicId: string, mode: GameM
     return Promise.resolve(mockQuestionSets.filter(q => q.topic_id === topicId && q.mode === mode))
   }
   
+  if (!supabase) {
+    return []
+  }
+  
   const { data, error } = await supabase
     .from('question_sets')
     .select('*')
     .eq('topic_id', topicId)
     .eq('mode', mode)
   
-  if (error) throw error
+  if (error) {
+    console.error('Error fetching question sets:', error)
+    return []
+  }
   return data
 }
 
@@ -175,6 +282,10 @@ export async function createSubject(name: string, icon: string) {
     return Promise.resolve(newSubject)
   }
   
+  if (!supabase) {
+    throw new Error('Supabase not configured')
+  }
+  
   const { data, error } = await supabase
     .from('subjects')
     .insert({ name, icon })
@@ -182,6 +293,10 @@ export async function createSubject(name: string, icon: string) {
     .single()
   
   if (error) throw error
+  
+  // Invalidate cache
+  dataCache.invalidate('subjects')
+  
   return data
 }
 
@@ -198,6 +313,10 @@ export async function createTopic(subjectId: string, name: string) {
     return Promise.resolve(newTopic)
   }
   
+  if (!supabase) {
+    throw new Error('Supabase not configured')
+  }
+  
   const { data, error } = await supabase
     .from('topics')
     .insert({ subject_id: subjectId, name })
@@ -205,6 +324,10 @@ export async function createTopic(subjectId: string, name: string) {
     .single()
   
   if (error) throw error
+  
+  // Invalidate cache
+  dataCache.invalidate(`topics:${subjectId}`)
+  
   return data
 }
 
@@ -228,6 +351,10 @@ export async function createQuestionSet(
     return Promise.resolve(newSet)
   }
   
+  if (!supabase) {
+    throw new Error('Supabase not configured')
+  }
+  
   const { data: result, error } = await supabase
     .from('question_sets')
     .insert({ topic_id: topicId, mode, is_random: isRandom, data })
@@ -235,6 +362,10 @@ export async function createQuestionSet(
     .single()
   
   if (error) throw error
+  
+  // Invalidate cache
+  dataCache.invalidate(`questions:${topicId}`)
+  
   return result
 }
 
@@ -285,6 +416,22 @@ export async function createImageGame(data: {
 }
 
 export async function getImageGames() {
+  const cacheKey = 'image_games:all'
+  
+  const cached = dataCache.get<ImageGame[]>(cacheKey)
+  if (cached) {
+    if (dataCache.isStale(cacheKey)) {
+      fetchImageGames().then(data => dataCache.set(cacheKey, data))
+    }
+    return cached
+  }
+  
+  const data = await fetchImageGames()
+  dataCache.set(cacheKey, data)
+  return data
+}
+
+async function fetchImageGames() {
   const { data, error } = await supabase
     .from('image_games')
     .select('*')
