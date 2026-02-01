@@ -15,6 +15,7 @@ export default function PlayImageGamePage() {
   const [allGames, setAllGames] = useState<ImageGame[]>([])
   const [currentGameIndex, setCurrentGameIndex] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [imageLoaded, setImageLoaded] = useState(false)
   const [selectedRegions, setSelectedRegions] = useState<{[key: string]: string}>({})
   const [availableLabels, setAvailableLabels] = useState<string[]>([])
   const [showResult, setShowResult] = useState(false)
@@ -78,7 +79,12 @@ export default function PlayImageGamePage() {
         if (imageRef.current) {
           imageRef.current.src = gameData.image_url
         }
+        setImageLoaded(true)
         drawCanvas()
+      }
+      img.onerror = () => {
+        console.error('Failed to load image')
+        setImageLoaded(true) // Show error state
       }
       img.src = gameData.image_url
     } catch (error) {
@@ -89,6 +95,7 @@ export default function PlayImageGamePage() {
   }
 
   const handleNextGame = () => {
+    setImageLoaded(false) // Reset image loaded state
     const nextIndex = (currentGameIndex + 1) % allGames.length
     setCurrentGameIndex(nextIndex)
     const nextGame = allGames[nextIndex]
@@ -107,7 +114,12 @@ export default function PlayImageGamePage() {
       if (imageRef.current) {
         imageRef.current.src = nextGame.image_url
       }
+      setImageLoaded(true)
       drawCanvas()
+    }
+    img.onerror = () => {
+      console.error('Failed to load image')
+      setImageLoaded(true)
     }
     img.src = nextGame.image_url
   }
@@ -470,14 +482,26 @@ export default function PlayImageGamePage() {
               <p className="text-sm text-muted-foreground mb-4">
                 💡 {selectedLabel ? `"${selectedLabel}" etiketini yerleştirmek için görseldeki bölgeye tıklayın` : 'Önce bir etiket seçin, sonra görseldeki bölgeye tıklayın'}
               </p>
-              <div className="bg-neutral-100 dark:bg-neutral-900 rounded-lg p-4">
+              <div className="bg-neutral-100 dark:bg-neutral-900 rounded-lg p-4 relative">
+                {/* Loading Overlay */}
+                {!imageLoaded && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-neutral-100 dark:bg-neutral-900 rounded-lg z-10">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Görsel yükleniyor...</p>
+                    </div>
+                  </div>
+                )}
+                
                 <img ref={imageRef} src={game.image_url} alt={game.title} className="hidden" crossOrigin="anonymous" />
                 <canvas
                   ref={canvasRef}
                   onClick={handleCanvasClick}
                   onMouseMove={handleCanvasMouseMove}
                   onMouseLeave={() => setHoveredRegion(null)}
-                  className="shadow-lg cursor-pointer"
+                  className={`shadow-lg cursor-pointer transition-opacity duration-300 ${
+                    imageLoaded ? 'opacity-100' : 'opacity-0'
+                  }`}
                   style={{ 
                     maxWidth: '100%',
                     height: 'auto'
@@ -489,16 +513,22 @@ export default function PlayImageGamePage() {
 
           <div className="space-y-4">
             <div className="bg-card border rounded-lg p-4">
-              <h3 className="font-semibold mb-3">Etiketler ({availableLabels.length})</h3>
+              <h3 className="font-semibold mb-3">
+                Etiketler ({availableLabels.length})
+                {!imageLoaded && <span className="text-xs text-muted-foreground ml-2">(Görsel yükleniyor...)</span>}
+              </h3>
               <div className="space-y-2">
                 {availableLabels.map((label, index) => (
                   <button
                     key={index}
-                    onClick={() => setSelectedLabel(label)}
-                    className={`w-full px-4 py-3 rounded-lg text-center font-medium cursor-pointer hover:shadow-md transition-all border-2 ${
-                      selectedLabel === label
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white border-blue-600 scale-105'
-                        : 'bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-500/20 dark:to-pink-500/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-500/30'
+                    onClick={() => imageLoaded && setSelectedLabel(label)}
+                    disabled={!imageLoaded}
+                    className={`w-full px-4 py-3 rounded-lg text-center font-medium transition-all border-2 ${
+                      !imageLoaded
+                        ? 'bg-muted text-muted-foreground border-border cursor-not-allowed opacity-50'
+                        : selectedLabel === label
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white border-blue-600 scale-105 cursor-pointer hover:shadow-md'
+                        : 'bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-500/20 dark:to-pink-500/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-500/30 cursor-pointer hover:shadow-md'
                     }`}
                   >
                     {label}
