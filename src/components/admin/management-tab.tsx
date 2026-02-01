@@ -1,16 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Trash2, Edit2, ChevronDown, ChevronRight, X, Save } from 'lucide-react'
-import { getSubjects, getTopicsBySubject, getQuestionSetsByTopicAndMode, getImageGamesByTopic, createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { useManagementData } from '@/hooks/use-queries'
+import { useQueryClient } from '@tanstack/react-query'
 
 export function ManagementTab() {
-  const [subjects, setSubjects] = useState<any[]>([])
+  const { data: subjects = [], isLoading: loading, refetch } = useManagementData()
+  const queryClient = useQueryClient()
+  
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set())
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set())
-  const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [editingSet, setEditingSet] = useState<any | null>(null)
   const [editData, setEditData] = useState<string>('')
@@ -18,44 +21,12 @@ export function ManagementTab() {
   const [editingSubject, setEditingSubject] = useState<any | null>(null)
   const [subjectName, setSubjectName] = useState('')
   const [subjectIcon, setSubjectIcon] = useState('')
+  const [editingTopic, setEditingTopic] = useState<any | null>(null)
+  const [topicName, setTopicName] = useState('')
+  const [topicShuffleSets, setTopicShuffleSets] = useState(true)
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
-    setLoading(true)
-    try {
-      const subjectsData = await getSubjects()
-      const subjectsWithTopics = await Promise.all(
-        subjectsData.map(async (subject) => {
-          const topics = await getTopicsBySubject(subject.id)
-          const topicsWithSets = await Promise.all(
-            topics.map(async (topic) => {
-              const matchingSets = await getQuestionSetsByTopicAndMode(topic.id, 'matching')
-              const sequenceSets = await getQuestionSetsByTopicAndMode(topic.id, 'sequence')
-              const groupingSets = await getQuestionSetsByTopicAndMode(topic.id, 'grouping')
-              const imageGames = await getImageGamesByTopic(topic.id)
-              return {
-                ...topic,
-                questionSets: [...matchingSets, ...sequenceSets, ...groupingSets],
-                imageGames: imageGames
-              }
-            })
-          )
-          return {
-            ...subject,
-            topics: topicsWithSets
-          }
-        })
-      )
-      setSubjects(subjectsWithTopics)
-    } catch (error) {
-      console.error('Error loading data:', error)
-      toast.error('Veriler yüklenirken hata oluştu')
-    } finally {
-      setLoading(false)
-    }
+  const invalidateCache = () => {
+    queryClient.invalidateQueries({ queryKey: ['management', 'full-hierarchy'] })
   }
 
   const toggleSubject = (subjectId: string) => {
@@ -94,7 +65,7 @@ export function ManagementTab() {
       if (error) throw error
 
       toast.success('Ders silindi')
-      loadData()
+      invalidateCache()
     } catch (error: any) {
       console.error('Error deleting subject:', error)
       toast.error('Silme başarısız: ' + error.message)
@@ -119,7 +90,7 @@ export function ManagementTab() {
       if (error) throw error
 
       toast.success('Konu silindi')
-      loadData()
+      invalidateCache()
     } catch (error: any) {
       console.error('Error deleting topic:', error)
       toast.error('Silme başarısız: ' + error.message)
@@ -144,7 +115,7 @@ export function ManagementTab() {
       if (error) throw error
 
       toast.success('Soru seti silindi')
-      loadData()
+      invalidateCache()
     } catch (error: any) {
       console.error('Error deleting question set:', error)
       toast.error('Silme başarısız: ' + error.message)
@@ -169,7 +140,7 @@ export function ManagementTab() {
       if (error) throw error
 
       toast.success('Görsel oyunu silindi')
-      loadData()
+      invalidateCache()
     } catch (error: any) {
       console.error('Error deleting image game:', error)
       toast.error('Silme başarısız: ' + error.message)
@@ -205,7 +176,7 @@ export function ManagementTab() {
 
       toast.success('Soru seti güncellendi')
       closeEditModal()
-      loadData()
+      invalidateCache()
     } catch (error: any) {
       console.error('Error saving question set:', error)
       if (error instanceof SyntaxError) {
@@ -252,7 +223,7 @@ export function ManagementTab() {
 
       toast.success('Ders güncellendi')
       closeEditSubject()
-      loadData()
+      invalidateCache()
     } catch (error: any) {
       console.error('Error saving subject:', error)
       toast.error('Kaydetme başarısız: ' + error.message)
@@ -261,10 +232,63 @@ export function ManagementTab() {
     }
   }
 
+  const openEditTopic = (topic: any) => {
+    setEditingTopic(topic)
+    setTopicName(topic.name)
+    setTopicShuffleSets(topic.shuffle_sets !== false) // Default true
+  }
+
+  const closeEditTopic = () => {
+    setEditingTopic(null)
+    setTopicName('')
+    setTopicShuffleSets(true)
+  }
+
+  const saveTopic = async () => {
+    if (!editingTopic || !topicName.trim()) {
+      toast.error('Konu adı gerekli')
+      return
+    }
+
+    try {
+      setSaving(true)
+
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('topics')
+        .update({ 
+          name: topicName.trim(),
+          shuffle_sets: topicShuffleSets
+        })
+        .eq('id', editingTopic.id)
+
+      if (error) throw error
+
+      toast.success('Konu güncellendi')
+      closeEditTopic()
+      invalidateCache()
+    } catch (error: any) {
+      console.error('Error saving topic:', error)
+      toast.error('Kaydetme başarısız: ' + error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-muted-foreground">Yükleniyor...</div>
+      <div className="space-y-2">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="bg-card rounded-lg border p-4 animate-pulse">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-muted rounded" />
+              <div className="flex-1">
+                <div className="h-5 bg-muted rounded w-32 mb-2" />
+                <div className="h-3 bg-muted rounded w-20" />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     )
   }
@@ -340,13 +364,22 @@ export function ManagementTab() {
                           </div>
                         </div>
                       </button>
-                      <button
-                        onClick={() => deleteTopic(topic.id, topic.name)}
-                        disabled={deleting === topic.id}
-                        className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => openEditTopic(topic)}
+                          className="p-2 text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors"
+                          title="Düzenle"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => deleteTopic(topic.id, topic.name)}
+                          disabled={deleting === topic.id}
+                          className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Question Sets */}
@@ -583,6 +616,100 @@ export function ManagementTab() {
                 </button>
                 <button
                   onClick={closeEditSubject}
+                  disabled={saving}
+                  className="px-6 py-3 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 disabled:opacity-50 transition-all"
+                >
+                  İptal
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Edit Topic Modal */}
+      {editingTopic && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-card border border-border rounded-xl p-6 max-w-md w-full shadow-2xl"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-foreground">Konuyu Düzenle</h3>
+              <button
+                onClick={closeEditTopic}
+                className="p-2 hover:bg-muted rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Konu Adı
+                </label>
+                <input
+                  type="text"
+                  value={topicName}
+                  onChange={(e) => setTopicName(e.target.value)}
+                  className="w-full p-3 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Örn: Sinir Sistemi"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Set Sırası
+                </label>
+                <div className="space-y-3">
+                  <label className="flex items-start gap-3 p-3 bg-muted rounded-lg border border-border cursor-pointer hover:border-primary/50 transition-colors">
+                    <input
+                      type="radio"
+                      checked={topicShuffleSets}
+                      onChange={() => setTopicShuffleSets(true)}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-foreground">🎲 Rastgele Sıra</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Setler her oyunda farklı sırada gelir (varsayılan)
+                      </div>
+                    </div>
+                  </label>
+                  
+                  <label className="flex items-start gap-3 p-3 bg-muted rounded-lg border border-border cursor-pointer hover:border-primary/50 transition-colors">
+                    <input
+                      type="radio"
+                      checked={!topicShuffleSets}
+                      onChange={() => setTopicShuffleSets(false)}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-foreground">📋 Sabit Sıra</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Setler her zaman aynı sırada gelir (oluşturulma sırasına göre)
+                      </div>
+                    </div>
+                  </label>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  💡 Not: Setlerin içindeki sorular her türlü karıştırılır, sadece set sırası etkilenir
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={saveTopic}
+                  disabled={saving || !topicName.trim()}
+                  className="flex-1 flex items-center justify-center gap-2 bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:opacity-90 disabled:opacity-50 transition-all"
+                >
+                  <Save className="w-4 h-4" />
+                  {saving ? 'Kaydediliyor...' : 'Kaydet'}
+                </button>
+                <button
+                  onClick={closeEditTopic}
                   disabled={saving}
                   className="px-6 py-3 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 disabled:opacity-50 transition-all"
                 >

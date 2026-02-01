@@ -2,46 +2,44 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { uploadToCloudinary } from '@/lib/cloudinary'
-import { createImageGame, getImageGames, deleteImageGame, getSubjects, getTopicsBySubject, ImageGame, ImageGameRegion } from '@/lib/supabase'
+import { createImageGame, deleteImageGame, getSubjects, getTopicsBySubject, ImageGame, ImageGameRegion } from '@/lib/supabase'
 import { Trash2, Square, Edit3, Pentagon, X } from 'lucide-react'
+import { useImageGames, useSubjects } from '@/hooks/use-queries'
+import { useQueryClient } from '@tanstack/react-query'
 
 type DrawMode = 'rectangle' | 'freehand' | 'polygon'
 type GameMode = 'region' | 'text-cover'
 
 export function ImageGameTab() {
+  const queryClient = useQueryClient()
+  const { data: games = [], isLoading: gamesLoading } = useImageGames()
+  const { data: subjects = [], isLoading: subjectsLoading } = useSubjects()
+  
   const [gameMode, setGameMode] = useState<GameMode>('region')
-  const [games, setGames] = useState<ImageGame[]>([])
-  const [subjects, setSubjects] = useState<any[]>([])
   const [allTopics, setAllTopics] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [showGames, setShowGames] = useState(false)
 
   useEffect(() => {
-    loadData()
-  }, [])
+    loadTopics()
+  }, [subjects])
 
-  const loadData = async () => {
-    setLoading(true)
+  const loadTopics = async () => {
+    if (subjects.length === 0) return
+    
     try {
-      const [gamesData, subjectsData] = await Promise.all([
-        getImageGames(),
-        getSubjects()
-      ])
-      setGames(gamesData)
-      setSubjects(subjectsData)
-      
-      // Load all topics for all subjects at once
-      if (subjectsData.length > 0) {
-        const allTopicsPromises = subjectsData.map(s => getTopicsBySubject(s.id))
-        const allTopicsArrays = await Promise.all(allTopicsPromises)
-        const flatTopics = allTopicsArrays.flat()
-        setAllTopics(flatTopics)
-      }
+      const allTopicsPromises = subjects.map(s => getTopicsBySubject(s.id))
+      const allTopicsArrays = await Promise.all(allTopicsPromises)
+      const flatTopics = allTopicsArrays.flat()
+      setAllTopics(flatTopics)
     } catch (error) {
-      console.error('Error loading data:', error)
-    } finally {
-      setLoading(false)
+      console.error('Error loading topics:', error)
     }
+  }
+
+  const invalidateCache = () => {
+    queryClient.invalidateQueries({ queryKey: ['imageGames'] })
+    queryClient.invalidateQueries({ queryKey: ['management', 'full-hierarchy'] })
   }
 
   const handleDelete = async (id: string) => {
@@ -49,12 +47,14 @@ export function ImageGameTab() {
 
     try {
       await deleteImageGame(id)
-      loadData()
+      invalidateCache()
     } catch (error) {
       console.error('Error deleting game:', error)
       alert('Oyun silinemedi')
     }
   }
+
+  const isLoading = gamesLoading || subjectsLoading
 
   return (
     <div className="space-y-6">
@@ -91,15 +91,15 @@ export function ImageGameTab() {
         <RegionMarkingMode
           subjects={subjects}
           allTopics={allTopics}
-          loading={loading}
-          onReload={loadData}
+          loading={isLoading}
+          onReload={invalidateCache}
         />
       ) : (
         <TextCoverMode
           subjects={subjects}
           allTopics={allTopics}
-          loading={loading}
-          onReload={loadData}
+          loading={isLoading}
+          onReload={invalidateCache}
         />
       )}
 

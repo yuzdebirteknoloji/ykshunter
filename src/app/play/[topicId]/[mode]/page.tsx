@@ -65,9 +65,17 @@ export default function PlayPage() {
       setTopic(topicData)
       setAllQuestionSets(questionSets)
       
-      // İlk seti seç (veya rastgele birinden başla)
-      const initialIndex = Math.floor(Math.random() * questionSets.length)
-      setCurrentSetIndex(initialIndex)
+      // Set sırasını belirle - topic ayarına göre
+      const shouldShuffle = topicData.shuffle_sets !== false // Default true
+      
+      if (shouldShuffle) {
+        // Rastgele bir setten başla
+        const initialIndex = Math.floor(Math.random() * questionSets.length)
+        setCurrentSetIndex(initialIndex)
+      } else {
+        // İlk setten başla (oluşturulma sırasına göre)
+        setCurrentSetIndex(0)
+      }
     } catch (error) {
       console.error('Error loading game:', error)
     } finally {
@@ -441,12 +449,23 @@ export default function PlayPage() {
                         return
                       }
                       
-                      const nextIndex = (currentSetIndex + 1) % allQuestionSets.length
+                      // Topic ayarına göre sonraki seti belirle
+                      const shouldShuffle = topic.shuffle_sets !== false
+                      let nextIndex
+                      
+                      if (shouldShuffle) {
+                        // Rastgele bir set seç
+                        nextIndex = Math.floor(Math.random() * allQuestionSets.length)
+                      } else {
+                        // Sırayla git
+                        nextIndex = (currentSetIndex + 1) % allQuestionSets.length
+                      }
                       
                       console.log('Next set button clicked:', {
                         currentIndex: currentSetIndex,
                         nextIndex,
-                        totalSets: allQuestionSets.length
+                        totalSets: allQuestionSets.length,
+                        shuffleMode: shouldShuffle ? 'random' : 'sequential'
                       })
                       
                       setCurrentSetIndex(nextIndex)
@@ -456,7 +475,7 @@ export default function PlayPage() {
                     className="bg-gradient-to-r from-green-600 to-teal-600 text-white py-3 rounded-lg font-semibold hover:from-green-700 hover:to-teal-700 transition-all shadow-lg"
                   >
                     {allQuestionSets.length > 1 
-                      ? `➡️ Sonraki Set (${currentSetIndex + 1}/${allQuestionSets.length})`
+                      ? `➡️ ${topic.shuffle_sets !== false ? 'Rastgele Set' : 'Sonraki Set'} (${currentSetIndex + 1}/${allQuestionSets.length})`
                       : '🔄 Tekrar Oyna'}
                   </button>
                 </div>

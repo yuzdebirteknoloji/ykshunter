@@ -42,6 +42,7 @@ export interface Topic {
   id: string
   subject_id: string
   name: string
+  shuffle_sets?: boolean // Set sırası rastgele mi olsun (default: true)
   created_at: string
   updated_at: string
 }

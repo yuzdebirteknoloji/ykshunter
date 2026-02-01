@@ -6,6 +6,7 @@ import {
   getTopicById,
   getImageGames,
   getQuestionSetsByTopicAndMode,
+  getImageGamesByTopic,
   createSubject,
   createTopic,
   createQuestionSet,
@@ -34,7 +35,8 @@ export function useSubjects() {
         return []
       }
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes - subjects rarely change
+    staleTime: 30 * 60 * 1000, // 30 minutes - subjects rarely change
+    gcTime: 60 * 60 * 1000, // 1 hour
     retry: false,
   })
 }
@@ -142,7 +144,54 @@ export function useImageGames() {
   return useQuery({
     queryKey: queryKeys.imageGames,
     queryFn: getImageGames,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
+  })
+}
+
+// Management - Full hierarchy with cache
+export function useManagementData() {
+  return useQuery({
+    queryKey: ['management', 'full-hierarchy'],
+    queryFn: async () => {
+      const subjects = await getSubjects()
+      
+      // Load all data in parallel for speed
+      const subjectsWithTopics = await Promise.all(
+        subjects.map(async (subject) => {
+          const topics = await getTopicsBySubject(subject.id)
+          
+          const topicsWithSets = await Promise.all(
+            topics.map(async (topic) => {
+              // Load all game types in parallel
+              const [matchingSets, sequenceSets, groupingSets, imageGames] = await Promise.all([
+                getQuestionSetsByTopicAndMode(topic.id, 'matching'),
+                getQuestionSetsByTopicAndMode(topic.id, 'sequence'),
+                getQuestionSetsByTopicAndMode(topic.id, 'grouping'),
+                getImageGamesByTopic(topic.id)
+              ])
+              
+              return {
+                ...topic,
+                questionSets: [...matchingSets, ...sequenceSets, ...groupingSets],
+                imageGames
+              }
+            })
+          )
+          
+          return {
+            ...subject,
+            topics: topicsWithSets
+          }
+        })
+      )
+      
+      return subjectsWithTopics
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes - fresh enough
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+    refetchOnMount: false, // Don't refetch on every mount
+    refetchOnWindowFocus: false, // Don't refetch on focus
   })
 }
 

@@ -5,8 +5,10 @@ import { motion } from 'framer-motion'
 import { Upload, CheckCircle } from 'lucide-react'
 import { getSubjects, getTopicsBySubject, createSubject, createTopic, createQuestionSet } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 
 export function BulkImportTab() {
+  const queryClient = useQueryClient()
   const [jsonData, setJsonData] = useState('')
   const [validationError, setValidationError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -87,6 +89,11 @@ export function BulkImportTab() {
       })
       setSuccess(true)
       setJsonData('')
+      
+      // Invalidate all relevant caches
+      queryClient.invalidateQueries({ queryKey: ['subjects'] })
+      queryClient.invalidateQueries({ queryKey: ['management', 'full-hierarchy'] })
+      
       toast.success('İçerik başarıyla içe aktarıldı!')
       setTimeout(() => setSuccess(false), 5000)
     } catch (e: any) {
