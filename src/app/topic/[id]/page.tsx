@@ -35,8 +35,8 @@ export default function TopicDetailPage() {
       setTopic(topicData)
       setQuestionSets(setsData)
       
-      // Filter image games for this topic
-      const topicImageGames = allImageGames.filter(g => g.topic_id === topicId)
+      // Filter image games for this topic (with null check)
+      const topicImageGames = (allImageGames || []).filter(g => g.topic_id === topicId)
       setImageGames(topicImageGames)
     } catch (error) {
       console.error('Error loading data:', error)
