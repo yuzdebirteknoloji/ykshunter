@@ -4,7 +4,7 @@ import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import { QueryProvider } from '@/providers/query-provider'
 import { Sidebar, SidebarBody, SidebarLink } from '@/components/ui/sidebar'
-import { Home, Gamepad2, Settings, User, Moon, Sun, LogOut, LayoutDashboard } from 'lucide-react'
+import { Home, Gamepad2, Settings, User, Moon, Sun, LogOut, LayoutDashboard, NotebookPen } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import { useRouter } from 'next/navigation'
@@ -35,6 +35,11 @@ const links = [
     href: '/settings',
     icon: <Settings className="text-foreground h-5 w-5 flex-shrink-0" />,
   },
+  {
+    label: 'Deneme Analizi',
+    href: '/trial-analysis',
+    icon: <NotebookPen className="text-foreground h-5 w-5 flex-shrink-0" />,
+  },
 ]
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
@@ -50,7 +55,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!mounted) return
-    
+
     // Kullanıcı bilgisini al
     fetch('/api/auth/me')
       .then(res => {
@@ -72,7 +77,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
       setOpen(false);
     }
-    
+
     try {
       await fetch('/api/auth/logout', { method: 'POST' })
       router.push('/login')
@@ -81,7 +86,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       console.error('Logout error:', err)
     }
   }
-  
+
   // Hydration hatalarını önlemek için mounted kontrolü
   if (!mounted) {
     return (
@@ -133,7 +138,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               {/* Announcements */}
               <AnnouncementsDisplay open={open} />
             </div>
-            
+
             {/* Bottom Section */}
             <div className="flex flex-col gap-2 border-t border-border pt-4">
               {/* User Info */}
@@ -207,36 +212,36 @@ export default function RootLayout({
         <meta name="description" content="Gamification ile öğrenme deneyimi - Oyunlaştırılmış eğitim platformu" />
         <meta name="keywords" content="eğitim, oyun, öğrenme, gamification, quiz, sınav" />
         <meta name="author" content="Learn Game" />
-        
+
         {/* PWA Meta Tags */}
         <link rel="manifest" href="/manifest.json" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="application-name" content="Learn Game" />
-        
+
         {/* Icons */}
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
         <link rel="icon" href="/icon-512.png" type="image/png" sizes="512x512" />
-        
+
         {/* Apple Touch Icons */}
         <link rel="apple-touch-icon" href="/icon-192.png" sizes="192x192" />
         <link rel="apple-touch-icon" href="/icon-512.png" sizes="512x512" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Learn Game" />
-        
+
         {/* Theme Colors */}
         <meta name="theme-color" content="#6366f1" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
-        
+
         {/* Viewport */}
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
-        
+
         {/* Performance Hints */}
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <QueryProvider>
           <ThemeProvider
             attribute="class"

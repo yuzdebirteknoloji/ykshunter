@@ -9,7 +9,8 @@ export async function uploadToCloudinary(file: File): Promise<string> {
   })
 
   if (!response.ok) {
-    throw new Error('Görsel yüklenemedi')
+    const errorData = await response.json()
+    throw new Error(errorData.error || errorData.details || 'Cloudinary Yükleme Hatası (V2)')
   }
 
   const data = await response.json()

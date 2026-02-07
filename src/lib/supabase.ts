@@ -7,7 +7,7 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const isSupabaseConfigured = supabaseUrl && supabaseKey && supabaseUrl !== 'https://placeholder.supabase.co'
 
 // Create client with fallback
-const supabaseClient = isSupabaseConfigured 
+const supabaseClient = isSupabaseConfigured
   ? createSupabaseClient(supabaseUrl, supabaseKey)
   : createSupabaseClient('https://placeholder.supabase.co', 'placeholder-key')
 
@@ -103,7 +103,7 @@ import { dataCache } from './cache'
 
 export async function getSubjects() {
   const cacheKey = 'subjects:all'
-  
+
   // Return cached data immediately if available
   const cached = dataCache.get<Subject[]>(cacheKey)
   if (cached) {
@@ -113,7 +113,7 @@ export async function getSubjects() {
     }
     return cached
   }
-  
+
   // Fetch fresh data
   const data = await fetchSubjects()
   dataCache.set(cacheKey, data)
@@ -124,23 +124,23 @@ async function fetchSubjects() {
   if (isMockMode) {
     return mockSubjects
   }
-  
+
   if (!supabase) {
     throw new Error('Supabase client not initialized')
   }
-  
+
   const { data, error } = await supabase
     .from('subjects')
     .select('*')
     .order('created_at', { ascending: false })
-  
+
   if (error) throw error
   return data
 }
 
 export async function getTopicsBySubject(subjectId: string) {
   const cacheKey = `topics:${subjectId}`
-  
+
   const cached = dataCache.get<Topic[]>(cacheKey)
   if (cached) {
     if (dataCache.isStale(cacheKey)) {
@@ -148,7 +148,7 @@ export async function getTopicsBySubject(subjectId: string) {
     }
     return cached
   }
-  
+
   const data = await fetchTopicsBySubject(subjectId)
   dataCache.set(cacheKey, data)
   return data
@@ -158,24 +158,24 @@ async function fetchTopicsBySubject(subjectId: string) {
   if (isMockMode) {
     return mockTopics.filter(t => t.subject_id === subjectId)
   }
-  
+
   if (!supabase) {
     throw new Error('Supabase client not initialized')
   }
-  
+
   const { data, error } = await supabase
     .from('topics')
     .select('*')
     .eq('subject_id', subjectId)
     .order('created_at', { ascending: false })
-  
+
   if (error) throw error
   return data
 }
 
 export async function getQuestionSetsByTopic(topicId: string) {
   const cacheKey = `questions:${topicId}`
-  
+
   const cached = dataCache.get<QuestionSet[]>(cacheKey)
   if (cached) {
     if (dataCache.isStale(cacheKey)) {
@@ -183,7 +183,7 @@ export async function getQuestionSetsByTopic(topicId: string) {
     }
     return cached
   }
-  
+
   const data = await fetchQuestionSetsByTopic(topicId)
   dataCache.set(cacheKey, data)
   return data
@@ -193,23 +193,23 @@ async function fetchQuestionSetsByTopic(topicId: string) {
   if (isMockMode) {
     return mockQuestionSets.filter(q => q.topic_id === topicId)
   }
-  
+
   if (!supabase) {
     throw new Error('Supabase client not initialized')
   }
-  
+
   const { data, error } = await supabase
     .from('question_sets')
     .select('*')
     .eq('topic_id', topicId)
-  
+
   if (error) throw error
   return data
 }
 
 export async function getTopicById(topicId: string) {
   const cacheKey = `topic:${topicId}`
-  
+
   const cached = dataCache.get<any>(cacheKey)
   if (cached) {
     if (dataCache.isStale(cacheKey)) {
@@ -217,7 +217,7 @@ export async function getTopicById(topicId: string) {
     }
     return cached
   }
-  
+
   const data = await fetchTopicById(topicId)
   dataCache.set(cacheKey, data)
   return data
@@ -227,17 +227,17 @@ async function fetchTopicById(topicId: string) {
   if (isMockMode) {
     return mockTopics.find(t => t.id === topicId) || null
   }
-  
+
   if (!supabase) {
     throw new Error('Supabase client not initialized')
   }
-  
+
   const { data, error } = await supabase
     .from('topics')
     .select('*, subjects(*)')
     .eq('id', topicId)
     .single()
-  
+
   if (error) throw error
   return data
 }
@@ -246,17 +246,17 @@ export async function getQuestionSetsByTopicAndMode(topicId: string, mode: GameM
   if (isMockMode) {
     return Promise.resolve(mockQuestionSets.filter(q => q.topic_id === topicId && q.mode === mode))
   }
-  
+
   if (!supabase) {
     return []
   }
-  
+
   const { data, error } = await supabase
     .from('question_sets')
     .select('*')
     .eq('topic_id', topicId)
     .eq('mode', mode)
-  
+
   if (error) {
     console.error('Error fetching question sets:', error)
     return []
@@ -282,22 +282,22 @@ export async function createSubject(name: string, icon: string) {
     mockSubjects.push(newSubject)
     return Promise.resolve(newSubject)
   }
-  
+
   if (!supabase) {
     throw new Error('Supabase not configured')
   }
-  
+
   const { data, error } = await supabase
     .from('subjects')
     .insert({ name, icon })
     .select()
     .single()
-  
+
   if (error) throw error
-  
+
   // Invalidate cache
   dataCache.invalidate('subjects')
-  
+
   return data
 }
 
@@ -313,22 +313,22 @@ export async function createTopic(subjectId: string, name: string) {
     mockTopics.push(newTopic)
     return Promise.resolve(newTopic)
   }
-  
+
   if (!supabase) {
     throw new Error('Supabase not configured')
   }
-  
+
   const { data, error } = await supabase
     .from('topics')
     .insert({ subject_id: subjectId, name })
     .select()
     .single()
-  
+
   if (error) throw error
-  
+
   // Invalidate cache
   dataCache.invalidate(`topics:${subjectId}`)
-  
+
   return data
 }
 
@@ -351,22 +351,22 @@ export async function createQuestionSet(
     mockQuestionSets.push(newSet)
     return Promise.resolve(newSet)
   }
-  
+
   if (!supabase) {
     throw new Error('Supabase not configured')
   }
-  
+
   const { data: result, error } = await supabase
     .from('question_sets')
     .insert({ topic_id: topicId, mode, is_random: isRandom, data })
     .select()
     .single()
-  
+
   if (error) throw error
-  
+
   // Invalidate cache
   dataCache.invalidate(`questions:${topicId}`)
-  
+
   return result
 }
 
@@ -383,7 +383,7 @@ export interface ImageGameRegion {
   y: number
   width: number
   height: number
-  points?: {x: number, y: number}[] // For polygon
+  points?: { x: number, y: number }[] // For polygon
 }
 
 export interface ImageGame {
@@ -410,7 +410,7 @@ export async function createImageGame(data: {
 }) {
   // Try with game_type first
   let insertData: any = { ...data }
-  
+
   const { data: game, error } = await supabase
     .from('image_games')
     .insert([insertData])
@@ -422,20 +422,20 @@ export async function createImageGame(data: {
     if (error.message?.includes('game_type') || error.code === '42703') {
       console.warn('game_type column not found, trying without it. Please run migration!')
       const { game_type, ...dataWithoutGameType } = insertData
-      
+
       const { data: gameRetry, error: errorRetry } = await supabase
         .from('image_games')
         .insert([dataWithoutGameType])
         .select()
         .single()
-      
+
       if (errorRetry) {
         console.error('Supabase error:', errorRetry)
         throw errorRetry
       }
       return gameRetry
     }
-    
+
     console.error('Supabase error:', error)
     throw error
   }
@@ -444,7 +444,7 @@ export async function createImageGame(data: {
 
 export async function getImageGames() {
   const cacheKey = 'image_games:all'
-  
+
   const cached = dataCache.get<ImageGame[]>(cacheKey)
   if (cached) {
     if (dataCache.isStale(cacheKey)) {
@@ -452,7 +452,7 @@ export async function getImageGames() {
     }
     return cached
   }
-  
+
   const data = await fetchImageGames()
   dataCache.set(cacheKey, data)
   return data
@@ -505,6 +505,107 @@ export async function updateImageGame(id: string, updates: Partial<ImageGame>) {
 export async function deleteImageGame(id: string) {
   const { error } = await supabase
     .from('image_games')
+    .delete()
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+// ============================================
+// TRIAL EXAM ANALYSES
+// ============================================
+
+export interface TrialAnalysis {
+  id: string
+  user_id: string
+  subject_id: string
+  image_url: string
+  note?: string
+  created_at: string
+  updated_at: string
+}
+
+export async function getTrialAnalysesBySubject(subjectId: string) {
+  if (isMockMode) {
+    // Mock implementation could go here if needed
+    return []
+  }
+
+  if (!supabase) {
+    throw new Error('Supabase client not initialized')
+  }
+
+  const { data, error } = await supabase
+    .from('trial_analyses')
+    .select('*')
+    .eq('subject_id', subjectId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data as TrialAnalysis[]
+}
+
+export async function createTrialAnalysis(data: {
+  subject_id: string
+  image_url: string
+  note?: string
+  user_id?: string // Allow passing user_id explicitly
+}) {
+  if (isMockMode) {
+    console.log('Mock create trial analysis:', data)
+    return { id: 'mock-id', ...data, created_at: new Date().toISOString() }
+  }
+
+  if (!supabase) {
+    throw new Error('Supabase client not initialized')
+  }
+
+  // Get user ID: either from arg or from supabase auth
+  let userId = data.user_id
+  if (!userId) {
+    const { data: userData } = await supabase.auth.getUser()
+    userId = userData.user?.id
+  }
+
+  console.log('Creating analysis for user:', userId)
+
+  if (!userId) {
+    // Fallback: This might happen if using custom auth. 
+    // We should probably throw an error or handle it.
+    console.warn('No user_id found for trial analysis. This might fail if RLS is enabled.')
+    // throw new Error('Kullanıcı kimliği bulunamadı (Oturum kapalı olabilir)')
+  }
+
+  const { data: result, error } = await supabase
+    .from('trial_analyses')
+    .insert([{
+      subject_id: data.subject_id,
+      image_url: data.image_url,
+      note: data.note,
+      user_id: userId
+    }])
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Database Insert Error:', error)
+    throw error
+  }
+  return result as TrialAnalysis
+}
+
+export async function deleteTrialAnalysis(id: string) {
+  if (isMockMode) {
+    console.log('Mock delete trial analysis:', id)
+    return
+  }
+
+  if (!supabase) {
+    throw new Error('Supabase client not initialized')
+  }
+
+  const { error } = await supabase
+    .from('trial_analyses')
     .delete()
     .eq('id', id)
 

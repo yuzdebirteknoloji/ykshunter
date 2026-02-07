@@ -8,13 +8,21 @@ export async function POST(request: Request) {
 
     // Master password kontrolü - .env'den al
     const MASTER_PASSWORD = process.env.MASTER_PASSWORD || 'defaultpassword'
-    
+
+    console.log('Login attempt...')
+    console.log('Provided password length:', password?.length)
+    console.log('Expected password length:', MASTER_PASSWORD?.length)
+    console.log('Expected password (first 2 chars):', MASTER_PASSWORD?.substring(0, 2))
+
     if (password !== MASTER_PASSWORD) {
+      console.log('❌ Password mismatch')
       return NextResponse.json(
         { error: 'Şifre yanlış' },
         { status: 401 }
       )
     }
+
+    console.log('✅ Password correct. Connecting to Supabase...')
 
     // Supabase'den ilk kullanıcıyı al (veya default user)
     const supabase = createClient()
@@ -24,24 +32,33 @@ export async function POST(request: Request) {
       .limit(1)
       .single()
 
+    if (error) {
+      console.error('❌ Supabase Error:', error)
+    }
+
+    if (!users) {
+      console.error('❌ No user found in database')
+    }
+
     if (error || !users) {
       return NextResponse.json(
-        { error: 'Kullanıcı bulunamadı' },
+        { error: 'Kullanıcı bulunamadı (Veritabanı boş veya bağlantı hatası)' },
         { status: 404 }
       )
     }
 
-    // Session cookie oluştur
-    const cookieStore = await cookies()
-    cookieStore.set('session', JSON.stringify({
-      userId: users.id,
+    console.log('✅ User found:', users.username)
+
+    // Session oluştur (lib/auth'daki helper'ı kullanarak)
+    const { setUserSession } = await import('@/lib/auth')
+
+    await setUserSession({
+      id: users.id,
       username: users.username,
-      loggedIn: true
-    }), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30 // 30 gün
+      displayName: users.display_name,
+      totalXp: users.total_xp || 0,
+      level: users.level || 1,
+      streakDays: users.streak_days || 0
     })
 
     return NextResponse.json({
@@ -55,7 +72,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Login error:', error)
     return NextResponse.json(
-      { error: 'Giriş başarısız' },
+      { error: 'Giriş başarısız: ' + (error as Error).message },
       { status: 500 }
     )
   }

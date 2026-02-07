@@ -37,13 +37,13 @@ export default function PlayPage() {
           mode: mode,
           data: currentSet.data
         }
-        
+
         console.log('Loading set from useEffect:', {
           currentSetIndex,
           totalSets: allQuestionSets.length,
           currentSet
         })
-        
+
         setQuestionSetData(currentSet)
         setState(GameEngine.initializeGame(game as any, currentSet.is_random))
       }
@@ -56,7 +56,7 @@ export default function PlayPage() {
         getTopicById(topicId),
         getQuestionSetsByTopicAndMode(topicId, mode)
       ])
-      
+
       if (!topicData || !questionSets || questionSets.length === 0) {
         setLoading(false)
         return
@@ -64,10 +64,10 @@ export default function PlayPage() {
 
       setTopic(topicData)
       setAllQuestionSets(questionSets)
-      
+
       // Set sırasını belirle - topic ayarına göre
       const shouldShuffle = topicData.shuffle_sets !== false // Default true
-      
+
       if (shouldShuffle) {
         // Rastgele bir setten başla
         const initialIndex = Math.floor(Math.random() * questionSets.length)
@@ -150,14 +150,14 @@ export default function PlayPage() {
       <div className="max-w-4xl mx-auto p-4 md:p-6 lg:p-10">
         {/* Header */}
         <div className="mb-6 md:mb-8">
-          <button 
+          <button
             onClick={() => router.back()}
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-4 md:mb-6 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 md:w-5 md:h-5" />
             <span className="text-sm md:text-base">Geri</span>
           </button>
-          
+
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -166,20 +166,20 @@ export default function PlayPage() {
               <h1 className="text-2xl md:text-4xl font-bold text-foreground">
                 {topic.name}
               </h1>
-              
+
               {/* Sonraki Set Butonu */}
               {allQuestionSets.length > 1 && (
                 <button
                   onClick={() => {
                     const shouldShuffle = topic.shuffle_sets !== false
                     let nextIndex
-                    
+
                     if (shouldShuffle) {
                       nextIndex = Math.floor(Math.random() * allQuestionSets.length)
                     } else {
                       nextIndex = (currentSetIndex + 1) % allQuestionSets.length
                     }
-                    
+
                     setCurrentSetIndex(nextIndex)
                     setShowResult(false)
                     setShowCorrectAnswers(false)
@@ -199,18 +199,17 @@ export default function PlayPage() {
                 </button>
               )}
             </div>
-            
+
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 md:gap-4">
-              <span className={`px-3 py-1 rounded-full text-xs md:text-sm font-medium border whitespace-nowrap ${
-                modeInfo.color === 'purple' ? 'bg-purple-100 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-500/20' :
+              <span className={`px-3 py-1 rounded-full text-xs md:text-sm font-medium border whitespace-nowrap ${modeInfo.color === 'purple' ? 'bg-purple-100 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-500/20' :
                 modeInfo.color === 'blue' ? 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20' :
-                'bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/20'
-              }`}>
+                  'bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/20'
+                }`}>
                 {modeInfo.icon} {modeInfo.label}
               </span>
               <div className="flex items-center gap-2 md:gap-3 flex-1 w-full sm:w-auto">
                 <div className="flex-1 bg-muted rounded-full h-2 max-w-xs">
-                  <motion.div 
+                  <motion.div
                     className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full"
                     initial={{ width: 0 }}
                     animate={{ width: `${progress}%` }}
@@ -224,32 +223,35 @@ export default function PlayPage() {
         </div>
 
         {/* Game Content */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           className="bg-card rounded-lg border border-border p-4 md:p-6 shadow-sm"
         >
           {state.mode === 'matching' && (
-            <MatchingGameView 
-              state={state} 
-              setState={setState} 
+            <MatchingGameView
+              key={questionSetData?.id || currentSetIndex}
+              state={state}
+              setState={setState}
               showResult={showResult}
               showCorrectAnswers={showCorrectAnswers}
             />
           )}
           {state.mode === 'sequence' && (
-            <SequenceGameView 
-              state={state} 
-              setState={setState} 
+            <SequenceGameView
+              key={questionSetData?.id || currentSetIndex}
+              state={state}
+              setState={setState}
               showResult={showResult}
               showCorrectAnswers={showCorrectAnswers}
             />
           )}
           {state.mode === 'grouping' && (
-            <GroupingGameView 
-              state={state} 
-              setState={setState} 
+            <GroupingGameView
+              key={questionSetData?.id || currentSetIndex}
+              state={state}
+              setState={setState}
               showResult={showResult}
               showCorrectAnswers={showCorrectAnswers}
             />
@@ -259,7 +261,7 @@ export default function PlayPage() {
           <div className="mt-4 md:mt-6 flex gap-2 md:gap-4">
             <button
               onClick={handleSubmit}
-              disabled={!isComplete || showResult}
+              disabled={showResult}
               className="flex-1 bg-primary text-primary-foreground py-2 md:py-3 rounded-lg font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm md:text-base"
             >
               {showResult ? '✓ Cevap Gönderildi' : 'Cevabı Gönder'}
@@ -270,7 +272,7 @@ export default function PlayPage() {
         {/* Result Modal */}
         {showResult && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               className="bg-card border border-border rounded-lg p-4 md:p-8 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto"
@@ -278,7 +280,7 @@ export default function PlayPage() {
               <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4 md:mb-6 text-center">
                 {GameEngine.checkAnswer(state) ? '🎉 Tebrikler!' : '😔 Tekrar Dene'}
               </h2>
-              
+
               {/* Stats */}
               <div className="grid grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
                 <div className="bg-muted rounded-lg p-3 md:p-4 text-center">
@@ -303,15 +305,14 @@ export default function PlayPage() {
                         const userAnswerId = state.userMatches[pair.id]
                         const isCorrect = userAnswerId === pair.id
                         const userAnswerPair = state.pairs.find((p: any) => p.id === userAnswerId)
-                        
+
                         return (
-                          <div 
+                          <div
                             key={pair.id}
-                            className={`p-4 rounded-lg border-2 ${
-                              isCorrect 
-                                ? 'bg-green-50 dark:bg-green-500/10 border-green-500' 
-                                : 'bg-red-50 dark:bg-red-500/10 border-red-500'
-                            }`}
+                            className={`p-4 rounded-lg border-2 ${isCorrect
+                              ? 'bg-green-50 dark:bg-green-500/10 border-green-500'
+                              : 'bg-red-50 dark:bg-red-500/10 border-red-500'
+                              }`}
                           >
                             <div className="flex items-start gap-3">
                               <div className="text-2xl">
@@ -342,15 +343,14 @@ export default function PlayPage() {
                       {state.userOrder.map((itemId: string, index: number) => {
                         const item = state.items.find((i: any) => i.id === itemId)
                         const isCorrect = item?.correctOrder === index
-                        
+
                         return (
-                          <div 
+                          <div
                             key={itemId}
-                            className={`p-4 rounded-lg border-2 ${
-                              isCorrect 
-                                ? 'bg-green-50 dark:bg-green-500/10 border-green-500' 
-                                : 'bg-red-50 dark:bg-red-500/10 border-red-500'
-                            }`}
+                            className={`p-4 rounded-lg border-2 ${isCorrect
+                              ? 'bg-green-50 dark:bg-green-500/10 border-green-500'
+                              : 'bg-red-50 dark:bg-red-500/10 border-red-500'
+                              }`}
                           >
                             <div className="flex items-start gap-3">
                               <div className="text-2xl">
@@ -381,15 +381,14 @@ export default function PlayPage() {
                       {state.items.map((item: any) => {
                         const userCategory = state.userAssignments[item.id]
                         const isCorrect = userCategory === item.correctCategory
-                        
+
                         return (
-                          <div 
+                          <div
                             key={item.id}
-                            className={`p-4 rounded-lg border-2 ${
-                              isCorrect 
-                                ? 'bg-green-50 dark:bg-green-500/10 border-green-500' 
-                                : 'bg-red-50 dark:bg-red-500/10 border-red-500'
-                            }`}
+                            className={`p-4 rounded-lg border-2 ${isCorrect
+                              ? 'bg-green-50 dark:bg-green-500/10 border-green-500'
+                              : 'bg-red-50 dark:bg-red-500/10 border-red-500'
+                              }`}
                           >
                             <div className="flex items-start gap-3">
                               <div className="text-2xl">
@@ -435,7 +434,7 @@ export default function PlayPage() {
                     onClick={() => {
                       // Sadece yanlış cevapları kaldır, doğruları koru
                       if (state.mode === 'matching') {
-                        const correctMatches: {[key: string]: string} = {}
+                        const correctMatches: { [key: string]: string } = {}
                         Object.keys(state.userMatches).forEach(keyId => {
                           const valueId = state.userMatches[keyId]
                           if (keyId === valueId) {
@@ -456,7 +455,7 @@ export default function PlayPage() {
                         })
                       } else if (state.mode === 'grouping') {
                         // Doğru kategorideki öğeleri koru, yanlışları kaldır
-                        const correctAssignments: {[key: string]: string} = {}
+                        const correctAssignments: { [key: string]: string } = {}
                         Object.keys(state.userAssignments).forEach(itemId => {
                           const category = state.userAssignments[itemId]
                           const item = state.items.find((i: any) => i.id === itemId)
@@ -483,11 +482,11 @@ export default function PlayPage() {
                         console.error('No question sets available')
                         return
                       }
-                      
+
                       // Topic ayarına göre sonraki seti belirle
                       const shouldShuffle = topic.shuffle_sets !== false
                       let nextIndex
-                      
+
                       if (shouldShuffle) {
                         // Rastgele bir set seç
                         nextIndex = Math.floor(Math.random() * allQuestionSets.length)
@@ -495,21 +494,21 @@ export default function PlayPage() {
                         // Sırayla git
                         nextIndex = (currentSetIndex + 1) % allQuestionSets.length
                       }
-                      
+
                       console.log('Next set button clicked:', {
                         currentIndex: currentSetIndex,
                         nextIndex,
                         totalSets: allQuestionSets.length,
                         shuffleMode: shouldShuffle ? 'random' : 'sequential'
                       })
-                      
+
                       setCurrentSetIndex(nextIndex)
                       setShowResult(false)
                       setShowCorrectAnswers(false)
                     }}
                     className="bg-gradient-to-r from-green-600 to-teal-600 text-white py-3 rounded-lg font-semibold hover:from-green-700 hover:to-teal-700 transition-all shadow-lg"
                   >
-                    {allQuestionSets.length > 1 
+                    {allQuestionSets.length > 1
                       ? `➡️ ${topic.shuffle_sets !== false ? 'Rastgele Set' : 'Sonraki Set'} (${currentSetIndex + 1}/${allQuestionSets.length})`
                       : '🔄 Tekrar Oyna'}
                   </button>
@@ -532,29 +531,31 @@ export default function PlayPage() {
 // Matching Game Component
 function MatchingGameView({ state, setState, showResult, showCorrectAnswers }: any) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
-  const [connections, setConnections] = useState<{[key: string]: string}>({})
-  
-  // Sol taraftaki terimleri karıştır (sadece ilk render'da)
-  const [shuffledKeys] = useState(() => {
+  const [connections, setConnections] = useState<{ [key: string]: string }>({})
+  const [shuffledKeys, setShuffledKeys] = useState<any[]>([])
+  const [shuffledValues, setShuffledValues] = useState<any[]>([])
+
+  // Sol taraftaki terimleri karıştır
+  useEffect(() => {
     const keys = [...state.pairs]
     // Fisher-Yates shuffle
     for (let i = keys.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [keys[i], keys[j]] = [keys[j], keys[i]]
     }
-    return keys
-  })
-  
-  // Sağ taraftaki cevapları karıştır (sadece ilk render'da)
-  const [shuffledValues] = useState(() => {
+    setShuffledKeys(keys)
+  }, [state.pairs]) // state.pairs değişince tekrar karıştır
+
+  // Sağ taraftaki cevapları karıştır
+  useEffect(() => {
     const values = [...state.pairs]
     // Fisher-Yates shuffle
     for (let i = values.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [values[i], values[j]] = [values[j], values[i]]
     }
-    return values
-  })
+    setShuffledValues(values)
+  }, [state.pairs])
 
   // State'ten connections'ı yükle
   useEffect(() => {
@@ -575,7 +576,7 @@ function MatchingGameView({ state, setState, showResult, showCorrectAnswers }: a
 
   const handleKeyClick = (keyId: string) => {
     if (showCorrectAnswers) return
-    
+
     if (selectedKey === keyId) {
       setSelectedKey(null)
     } else if (connections[keyId]) {
@@ -594,7 +595,7 @@ function MatchingGameView({ state, setState, showResult, showCorrectAnswers }: a
 
   const handleValueClick = (valueId: string) => {
     if (showCorrectAnswers || !selectedKey) return
-    
+
     // Eşleştirme yap
     const newConnections = { ...connections, [selectedKey]: valueId }
     setConnections(newConnections)
@@ -619,7 +620,7 @@ function MatchingGameView({ state, setState, showResult, showCorrectAnswers }: a
       <p className="text-muted-foreground">
         {showCorrectAnswers ? 'Doğru eşleştirmeler gösteriliyor:' : 'Sol taraftan bir terim seçin, sonra sağ taraftan açıklamasını seçin:'}
       </p>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Keys (Sol taraf) */}
         <div className="space-y-3">
@@ -629,23 +630,22 @@ function MatchingGameView({ state, setState, showResult, showCorrectAnswers }: a
             const isSelected = selectedKey === pair.id
             const color = isConnected ? getColorForConnection(pair.id) : null
             const isCorrect = showCorrectAnswers ? connections[pair.id] === pair.id : null
-            
+
             return (
               <button
                 key={pair.id}
                 onClick={() => handleKeyClick(pair.id)}
                 disabled={showCorrectAnswers}
-                className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
-                  showCorrectAnswers
-                    ? isCorrect
-                      ? 'border-green-500 bg-green-50 dark:bg-green-500/10'
-                      : 'border-red-500 bg-red-50 dark:bg-red-500/10'
-                    : isSelected
+                className={`w-full p-4 rounded-lg border-2 text-left transition-all ${showCorrectAnswers
+                  ? isCorrect
+                    ? 'border-green-500 bg-green-50 dark:bg-green-500/10'
+                    : 'border-red-500 bg-red-50 dark:bg-red-500/10'
+                  : isSelected
                     ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 shadow-lg scale-105'
                     : isConnected
-                    ? `${color?.border} ${color?.light} shadow-md`
-                    : 'border-border bg-card hover:border-blue-300 hover:shadow-md'
-                } ${showCorrectAnswers ? 'cursor-default' : 'cursor-pointer'}`}
+                      ? `${color?.border} ${color?.light} shadow-md`
+                      : 'border-border bg-card hover:border-blue-300 hover:shadow-md'
+                  } ${showCorrectAnswers ? 'cursor-default' : 'cursor-pointer'}`}
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-foreground">{pair.key}</span>
@@ -671,23 +671,22 @@ function MatchingGameView({ state, setState, showResult, showCorrectAnswers }: a
             const isConnected = !!connectedKeyId
             const color = isConnected ? getColorForConnection(connectedKeyId!) : null
             const isCorrect = showCorrectAnswers ? connectedKeyId === pair.id : null
-            
+
             return (
               <button
                 key={pair.id}
                 onClick={() => handleValueClick(pair.id)}
                 disabled={showCorrectAnswers || isConnected}
-                className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
-                  showCorrectAnswers
-                    ? isCorrect
-                      ? 'border-green-500 bg-green-50 dark:bg-green-500/10'
-                      : 'border-red-500 bg-red-50 dark:bg-red-500/10'
-                    : isConnected
+                className={`w-full p-4 rounded-lg border-2 text-left transition-all ${showCorrectAnswers
+                  ? isCorrect
+                    ? 'border-green-500 bg-green-50 dark:bg-green-500/10'
+                    : 'border-red-500 bg-red-50 dark:bg-red-500/10'
+                  : isConnected
                     ? `${color?.border} ${color?.light} shadow-md cursor-not-allowed opacity-70`
                     : selectedKey
-                    ? 'border-border bg-card hover:border-purple-300 hover:shadow-md cursor-pointer'
-                    : 'border-border bg-card cursor-default'
-                }`}
+                      ? 'border-border bg-card hover:border-purple-300 hover:shadow-md cursor-pointer'
+                      : 'border-border bg-card cursor-default'
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   <span className={`${isConnected && !showCorrectAnswers ? 'text-muted-foreground' : 'text-foreground'}`}>
@@ -768,17 +767,16 @@ function SequenceGameView({ state, setState, showResult, showCorrectAnswers }: a
           {state.userOrder.map((itemId: string, index: number) => {
             const item = state.items.find((i: any) => i.id === itemId)
             const isCorrect = showCorrectAnswers ? item?.correctOrder === index : null
-            
+
             return (
               <div
                 key={itemId}
-                className={`flex items-center gap-3 p-3 rounded-lg border-2 shadow-sm transition-all ${
-                  showCorrectAnswers
-                    ? isCorrect
-                      ? 'bg-green-50 dark:bg-green-500/10 border-green-500'
-                      : 'bg-red-50 dark:bg-red-500/10 border-red-500'
-                    : 'bg-card border-border'
-                }`}
+                className={`flex items-center gap-3 p-3 rounded-lg border-2 shadow-sm transition-all ${showCorrectAnswers
+                  ? isCorrect
+                    ? 'bg-green-50 dark:bg-green-500/10 border-green-500'
+                    : 'bg-red-50 dark:bg-red-500/10 border-red-500'
+                  : 'bg-card border-border'
+                  }`}
               >
                 <span className={`font-bold ${showCorrectAnswers ? (isCorrect ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400') : 'text-blue-600 dark:text-blue-400'}`}>
                   {index + 1}.
@@ -890,37 +888,34 @@ function GroupingGameView({ state, setState, showResult, showCorrectAnswers }: a
           const categoryItems = state.items.filter(
             (item: any) => state.userAssignments[item.id] === category
           )
-          
+
           return (
-            <div 
-              key={category} 
-              className={`border-2 rounded-lg p-4 min-h-[200px] ${
-                showCorrectAnswers 
-                  ? 'border-green-500 bg-green-50 dark:bg-green-500/10'
-                  : 'border-purple-300 dark:border-purple-500/20 bg-purple-50 dark:bg-purple-500/5'
-              }`}
+            <div
+              key={category}
+              className={`border-2 rounded-lg p-4 min-h-[200px] ${showCorrectAnswers
+                ? 'border-green-500 bg-green-50 dark:bg-green-500/10'
+                : 'border-purple-300 dark:border-purple-500/20 bg-purple-50 dark:bg-purple-500/5'
+                }`}
             >
-              <h3 className={`font-semibold mb-3 text-lg ${
-                showCorrectAnswers 
-                  ? 'text-green-700 dark:text-green-400'
-                  : 'text-purple-700 dark:text-purple-400'
-              }`}>
+              <h3 className={`font-semibold mb-3 text-lg ${showCorrectAnswers
+                ? 'text-green-700 dark:text-green-400'
+                : 'text-purple-700 dark:text-purple-400'
+                }`}>
                 {category}
               </h3>
               <div className="space-y-2">
                 {categoryItems.map((item: any) => {
                   const isCorrect = showCorrectAnswers ? item.correctCategory === category : null
-                  
+
                   return (
                     <div
                       key={item.id}
-                      className={`p-3 rounded-lg flex items-center justify-between shadow-sm transition-all ${
-                        showCorrectAnswers
-                          ? isCorrect
-                            ? 'bg-green-100 dark:bg-green-500/20 border-2 border-green-500'
-                            : 'bg-red-100 dark:bg-red-500/20 border-2 border-red-500'
-                          : 'bg-card border border-border'
-                      }`}
+                      className={`p-3 rounded-lg flex items-center justify-between shadow-sm transition-all ${showCorrectAnswers
+                        ? isCorrect
+                          ? 'bg-green-100 dark:bg-green-500/20 border-2 border-green-500'
+                          : 'bg-red-100 dark:bg-red-500/20 border-2 border-red-500'
+                        : 'bg-card border border-border'
+                        }`}
                     >
                       <span className="text-foreground">{item.text}</span>
                       <div className="flex items-center gap-2">
@@ -961,7 +956,7 @@ function GroupingGameView({ state, setState, showResult, showCorrectAnswers }: a
               const correctItems = state.items.filter(
                 (item: any) => item.correctCategory === category
               )
-              
+
               return (
                 <div key={category} className="border-2 border-green-500 bg-green-50 dark:bg-green-500/10 rounded-lg p-4">
                   <h4 className="font-semibold text-green-700 dark:text-green-400 mb-3">{category}</h4>
