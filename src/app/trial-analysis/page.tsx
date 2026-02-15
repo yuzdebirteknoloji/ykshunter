@@ -281,12 +281,14 @@ function UploadModal({
     const [previewUrl, setPreviewUrl] = useState<string | null>(null)
     const [note, setNote] = useState('')
     const [subjectId, setSubjectId] = useState(defaultSubjectId || '')
-
-    const [isAddingSubject, setIsAddingSubject] = useState(false)
+    const [addingNewSubject, setAddingNewSubject] = useState(false)
     const [newSubjectName, setNewSubjectName] = useState('')
-    const [newSubjectIcon, setNewSubjectIcon] = useState('📘')
+    const [newSubjectIcon, setNewSubjectIcon] = useState('📚')
+    const [savingSubject, setSavingSubject] = useState(false)
 
     const queryClient = useQueryClient()
+
+    const subjectIcons = ['📚', '📐', '🧪', '🌍', '📖', '🔢', '🧬', '🎨', '💻', '📝', '🏛️', '⚗️', '🧮', '🌿', '🔬']
 
     // Update subjectId when defaultSubjectId changes
     useEffect(() => {
@@ -299,11 +301,33 @@ function UploadModal({
             setSelectedFile(null)
             setPreviewUrl(null)
             setNote('')
-            setIsAddingSubject(false)
+            setAddingNewSubject(false)
             setNewSubjectName('')
-            setNewSubjectIcon('📘')
+            setNewSubjectIcon('📚')
         }
     }, [isOpen])
+
+    const handleAddSubject = async () => {
+        if (!newSubjectName.trim()) {
+            toast.error('Ders adı boş olamaz')
+            return
+        }
+        setSavingSubject(true)
+        try {
+            const newSubject = await createSubject(newSubjectName.trim(), newSubjectIcon)
+            queryClient.invalidateQueries({ queryKey: ['subjects'] })
+            setSubjectId(newSubject.id)
+            setAddingNewSubject(false)
+            setNewSubjectName('')
+            setNewSubjectIcon('📚')
+            toast.success('Ders başarıyla eklendi')
+        } catch (error) {
+            console.error(error)
+            toast.error('Ders eklenirken hata oluştu')
+        } finally {
+            setSavingSubject(false)
+        }
+    }
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
@@ -313,24 +337,6 @@ function UploadModal({
             setPreviewUrl(url)
         }
     }
-
-    const addSubjectMutation = useMutation({
-        mutationFn: async () => {
-            if (!newSubjectName.trim()) throw new Error('Ders adı boş olamaz')
-            return await createSubject(newSubjectName.trim(), newSubjectIcon)
-        },
-        onSuccess: (newSubject) => {
-            queryClient.invalidateQueries({ queryKey: ['subjects'] })
-            setSubjectId(newSubject.id)
-            setIsAddingSubject(false)
-            setNewSubjectName('')
-            setNewSubjectIcon('📘')
-            toast.success(`"${newSubject.name}" dersi eklendi`)
-        },
-        onError: (error) => {
-            toast.error('Ders eklenemedi: ' + (error as Error).message)
-        }
-    })
 
     const uploadMutation = useMutation({
         mutationFn: async () => {
@@ -419,99 +425,75 @@ function UploadModal({
                                                 <span className="text-sm truncate">{s.name}</span>
                                             </button>
                                         ))}
-                                        {/* Add New Subject Button */}
-                                        <button
-                                            onClick={() => setIsAddingSubject(!isAddingSubject)}
-                                            className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg border-2 border-dashed transition-all ${
-                                                isAddingSubject
-                                                    ? 'border-primary bg-primary/5 text-primary'
-                                                    : 'border-muted-foreground/30 hover:border-primary/50 text-muted-foreground hover:text-primary'
-                                            }`}
-                                        >
-                                            <Plus className="w-4 h-4" />
-                                            <span className="text-sm font-medium">Yeni Ders</span>
-                                        </button>
+
+                                        {/* Yeni Ders Ekle Butonu */}
+                                        {!addingNewSubject && (
+                                            <button
+                                                onClick={() => setAddingNewSubject(true)}
+                                                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-primary/40 text-primary hover:bg-primary/5 transition-all"
+                                            >
+                                                <Plus className="w-4 h-4" />
+                                                <span className="text-sm">Yeni Ders Ekle</span>
+                                            </button>
+                                        )}
                                     </div>
 
-                                    {/* Add New Subject Form */}
-                                    <AnimatePresence>
-                                        {isAddingSubject && (
-                                            <motion.div
-                                                initial={{ opacity: 0, height: 0 }}
-                                                animate={{ opacity: 1, height: 'auto' }}
-                                                exit={{ opacity: 0, height: 0 }}
-                                                className="overflow-hidden"
-                                            >
-                                                <div className="mt-3 p-4 bg-muted/50 rounded-xl border space-y-3">
-                                                    <div>
-                                                        <label className="block text-xs font-medium mb-1.5 text-muted-foreground">Emoji Seçin</label>
-                                                        <div className="flex flex-wrap gap-1.5">
-                                                            {['📘', '📗', '📕', '📙', '🧬', '⚗️', '🔬', '🧪', '📐', '📊', '🏛️', '📚', '🌍', '💻', '🎵', '🎨', '⚽', '🧮', '📝', '🔢'].map(emoji => (
-                                                                <button
-                                                                    key={emoji}
-                                                                    onClick={() => setNewSubjectIcon(emoji)}
-                                                                    className={`w-9 h-9 rounded-lg text-lg flex items-center justify-center transition-all ${
-                                                                        newSubjectIcon === emoji
-                                                                            ? 'bg-primary/20 ring-2 ring-primary scale-110'
-                                                                            : 'bg-background hover:bg-muted border'
-                                                                    }`}
-                                                                >
-                                                                    {emoji}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-xs font-medium mb-1.5 text-muted-foreground">Ders Adı</label>
-                                                        <input
-                                                            type="text"
-                                                            value={newSubjectName}
-                                                            onChange={(e) => setNewSubjectName(e.target.value)}
-                                                            placeholder="Örn: AYT Fizik"
-                                                            className="w-full px-3 py-2 rounded-lg border bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm"
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Enter' && newSubjectName.trim()) {
-                                                                    addSubjectMutation.mutate()
-                                                                }
-                                                            }}
-                                                        />
-                                                    </div>
-                                                    <div className="flex gap-2">
+                                    {/* Yeni Ders Ekleme Formu */}
+                                    {addingNewSubject && (
+                                        <div className="mt-3 p-3 bg-muted/50 rounded-lg border space-y-3">
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex gap-1 flex-wrap">
+                                                    {subjectIcons.map(icon => (
                                                         <button
-                                                            onClick={() => addSubjectMutation.mutate()}
-                                                            disabled={!newSubjectName.trim() || addSubjectMutation.isPending}
-                                                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                                            key={icon}
+                                                            onClick={() => setNewSubjectIcon(icon)}
+                                                            className={`w-8 h-8 rounded-md flex items-center justify-center text-lg transition-all ${
+                                                                newSubjectIcon === icon
+                                                                    ? 'bg-primary/20 ring-2 ring-primary scale-110'
+                                                                    : 'hover:bg-muted'
+                                                            }`}
                                                         >
-                                                            {addSubjectMutation.isPending ? (
-                                                                <>
-                                                                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                                    Ekleniyor...
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <Plus className="w-3.5 h-3.5" />
-                                                                    Ekle
-                                                                </>
-                                                            )}
+                                                            {icon}
                                                         </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                setIsAddingSubject(false)
-                                                                setNewSubjectName('')
-                                                                setNewSubjectIcon('📘')
-                                                            }}
-                                                            className="px-3 py-2 text-sm hover:bg-muted rounded-lg transition-colors"
-                                                        >
-                                                            İptal
-                                                        </button>
-                                                    </div>
+                                                    ))}
                                                 </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={newSubjectName}
+                                                    onChange={(e) => setNewSubjectName(e.target.value)}
+                                                    placeholder="Ders adı yazın..."
+                                                    className="flex-1 px-3 py-2 text-sm border rounded-lg bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                                    autoFocus
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') handleAddSubject()
+                                                        if (e.key === 'Escape') setAddingNewSubject(false)
+                                                    }}
+                                                />
+                                                <button
+                                                    onClick={handleAddSubject}
+                                                    disabled={savingSubject || !newSubjectName.trim()}
+                                                    className="px-3 py-2 bg-primary text-primary-foreground text-sm rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                                >
+                                                    {savingSubject ? '...' : 'Ekle'}
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setAddingNewSubject(false)
+                                                        setNewSubjectName('')
+                                                    }}
+                                                    className="px-3 py-2 text-sm hover:bg-muted rounded-lg transition-colors"
+                                                >
+                                                    İptal
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
 
-                                    {!subjectId && !isAddingSubject && <p className="text-xs text-red-500 mt-1">Lütfen bir ders seçin</p>}
+                                    {!subjectId && <p className="text-xs text-red-500 mt-1">Lütfen bir ders seçin</p>}
                                 </div>
+
 
                                 {/* Image Upload */}
                                 <div>
