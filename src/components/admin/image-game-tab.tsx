@@ -305,15 +305,41 @@ function RegionMarkingMode({ subjects, allTopics, loading, onReload }: any) {
     }
   }
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const getCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current
-    if (!canvas) return
+    if (!canvas) return { x: 0, y: 0 }
 
     const rect = canvas.getBoundingClientRect()
     const scaleX = canvas.width / rect.width
     const scaleY = canvas.height / rect.height
-    const x = (e.clientX - rect.left) * scaleX
-    const y = (e.clientY - rect.top) * scaleY
+    
+    let clientX, clientY
+    if ('touches' in e) {
+      if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX
+        clientY = e.touches[0].clientY
+      } else if ('changedTouches' in e && e.changedTouches.length > 0) {
+        clientX = e.changedTouches[0].clientX
+        clientY = e.changedTouches[0].clientY
+      } else {
+        return null
+      }
+    } else {
+      clientX = (e as React.MouseEvent).clientX
+      clientY = (e as React.MouseEvent).clientY
+    }
+
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    }
+  }
+
+  const handleStart = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const coords = getCoordinates(e)
+    if (!coords) return
+
+    const { x, y } = coords
 
     if (drawMode === 'rectangle') {
       setIsDrawing(true)
@@ -326,17 +352,18 @@ function RegionMarkingMode({ subjects, allTopics, loading, onReload }: any) {
     }
   }
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleMove = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!isDrawing) return
+    
+    // Prevent scrolling on touch devices while drawing
+    if ('touches' in e) {
+      if (e.cancelable) e.preventDefault()
+    }
 
-    const canvas = canvasRef.current
-    if (!canvas) return
+    const coords = getCoordinates(e)
+    if (!coords) return
 
-    const rect = canvas.getBoundingClientRect()
-    const scaleX = canvas.width / rect.width
-    const scaleY = canvas.height / rect.height
-    const x = (e.clientX - rect.left) * scaleX
-    const y = (e.clientY - rect.top) * scaleY
+    const { x, y } = coords
 
     if (drawMode === 'rectangle') {
       const width = x - startPos.x
@@ -357,7 +384,7 @@ function RegionMarkingMode({ subjects, allTopics, loading, onReload }: any) {
     drawCanvas()
   }
 
-  const handleMouseUp = () => {
+  const handleEnd = () => {
     if (!isDrawing) return
     setIsDrawing(false)
     
@@ -550,7 +577,7 @@ function RegionMarkingMode({ subjects, allTopics, loading, onReload }: any) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <div className="bg-card border rounded-lg p-4 space-y-4">
-              <div className="flex items-center gap-2 pb-4 border-b">
+              <div className="flex items-center flex-wrap gap-2 pb-4 border-b">
                 <button
                   onClick={() => {
                     setDrawMode('rectangle')
@@ -624,11 +651,14 @@ function RegionMarkingMode({ subjects, allTopics, loading, onReload }: any) {
                 />
                 <canvas
                   ref={canvasRef}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  className="cursor-crosshair shadow-lg w-full"
-                  style={{ minHeight: '500px' }}
+                  onMouseDown={handleStart}
+                  onMouseMove={handleMove}
+                  onMouseUp={handleEnd}
+                  onTouchStart={handleStart}
+                  onTouchMove={handleMove}
+                  onTouchEnd={handleEnd}
+                  className="cursor-crosshair shadow-lg w-full touch-none"
+                  style={{ minHeight: '400px', backgroundColor: '#f3f4f6' }}
                 />
               </div>
             </div>
@@ -794,31 +824,58 @@ function TextCoverMode({ subjects, allTopics, loading, onReload }: any) {
     }
   }
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const getCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current
-    if (!canvas) return
+    if (!canvas) return { x: 0, y: 0 }
 
     const rect = canvas.getBoundingClientRect()
     const scaleX = canvas.width / rect.width
     const scaleY = canvas.height / rect.height
-    const x = (e.clientX - rect.left) * scaleX
-    const y = (e.clientY - rect.top) * scaleY
+    
+    let clientX, clientY
+    if ('touches' in e) {
+      if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX
+        clientY = e.touches[0].clientY
+      } else if ('changedTouches' in e && e.changedTouches.length > 0) {
+        clientX = e.changedTouches[0].clientX
+        clientY = e.changedTouches[0].clientY
+      } else {
+        return null
+      }
+    } else {
+      clientX = (e as React.MouseEvent).clientX
+      clientY = (e as React.MouseEvent).clientY
+    }
+
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    }
+  }
+
+  const handleStart = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const coords = getCoordinates(e)
+    if (!coords) return
+
+    const { x, y } = coords
 
     setIsDragging(true)
     setDragStart({ x, y })
   }
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleMove = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!isDragging) return
+    
+    // Prevent scrolling on touch devices while drawing
+    if ('touches' in e) {
+      if (e.cancelable) e.preventDefault()
+    }
 
-    const canvas = canvasRef.current
-    if (!canvas) return
+    const coords = getCoordinates(e)
+    if (!coords) return
 
-    const rect = canvas.getBoundingClientRect()
-    const scaleX = canvas.width / rect.width
-    const scaleY = canvas.height / rect.height
-    const x = (e.clientX - rect.left) * scaleX
-    const y = (e.clientY - rect.top) * scaleY
+    const { x, y } = coords
 
     const width = x - dragStart.x
     const height = y - dragStart.y
@@ -836,8 +893,11 @@ function TextCoverMode({ subjects, allTopics, loading, onReload }: any) {
     drawCanvas()
   }
 
-  const handleMouseUp = () => {
-    if (!isDragging || !currentBox) return
+  const handleEnd = () => {
+    if (!isDragging || !currentBox) {
+      setIsDragging(false)
+      return
+    }
     
     setIsDragging(false)
     
@@ -1011,11 +1071,14 @@ function TextCoverMode({ subjects, allTopics, loading, onReload }: any) {
                 />
                 <canvas
                   ref={canvasRef}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  className="cursor-crosshair shadow-lg w-full"
-                  style={{ minHeight: '500px' }}
+                  onMouseDown={handleStart}
+                  onMouseMove={handleMove}
+                  onMouseUp={handleEnd}
+                  onTouchStart={handleStart}
+                  onTouchMove={handleMove}
+                  onTouchEnd={handleEnd}
+                  className="cursor-crosshair shadow-lg w-full touch-none"
+                  style={{ minHeight: '400px', backgroundColor: '#f3f4f6' }}
                 />
               </div>
             </div>
