@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Trash2, Edit2, ChevronDown, ChevronRight, X, Save } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
+import { Trash2, Edit2, ChevronDown, ChevronRight, X, Save, Plus } from 'lucide-react'
+import { createClient, createSubject } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useManagementSubjects, useManagementTopics, useManagementQuestionSets } from '@/hooks/use-queries'
 import { useQueryClient } from '@tanstack/react-query'
@@ -24,6 +24,14 @@ export function ManagementTab() {
   const [editingTopic, setEditingTopic] = useState<any | null>(null)
   const [topicName, setTopicName] = useState('')
   const [topicShuffleSets, setTopicShuffleSets] = useState(true)
+
+  // Add Subject State
+  const [isAddingSubject, setIsAddingSubject] = useState(false)
+  const [newSubjectName, setNewSubjectName] = useState('')
+  const [newSubjectIcon, setNewSubjectIcon] = useState('📚')
+  const [creatingSubject, setCreatingSubject] = useState(false)
+
+  const subjectIcons = ['📚', '📐', '🧪', '🌍', '📖', '🔢', '🧬', '🎨', '💻', '📝', '🏛️', '⚗️', '🧮', '🌿', '🔬']
 
   const invalidateCache = () => {
     // Invalidate all management caches
@@ -276,6 +284,28 @@ export function ManagementTab() {
     }
   }
 
+  const handleAddSubject = async () => {
+    if (!newSubjectName.trim()) {
+      toast.error('Ders adı gerekli')
+      return
+    }
+
+    try {
+      setCreatingSubject(true)
+      await createSubject(newSubjectName.trim(), newSubjectIcon)
+      toast.success('Ders başarıyla oluşturuldu')
+      setIsAddingSubject(false)
+      setNewSubjectName('')
+      setNewSubjectIcon('📚')
+      invalidateCache()
+    } catch (error: any) {
+      console.error('Error creating subject:', error)
+      toast.error('Oluşturma başarısız: ' + error.message)
+    } finally {
+      setCreatingSubject(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="space-y-2">
@@ -296,10 +326,87 @@ export function ManagementTab() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-2">🗂️ İçerik Yönetimi</h2>
-        <p className="text-sm text-muted-foreground">Dersler, konular ve soru setlerini yönet</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold mb-2">🗂️ İçerik Yönetimi</h2>
+          <p className="text-sm text-muted-foreground">Dersler, konular ve soru setlerini yönet</p>
+        </div>
+        {!isAddingSubject && (
+          <button
+            onClick={() => setIsAddingSubject(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-all font-medium shadow-lg hover:shadow-primary/20"
+          >
+            <Plus className="w-4 h-4" />
+            Yeni Ders Ekle
+          </button>
+        )}
       </div>
+
+      {isAddingSubject && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 p-4 bg-muted/50 border border-primary/20 rounded-xl space-y-4"
+        >
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-foreground">Yeni Ders Oluştur</h3>
+            <button
+              onClick={() => setIsAddingSubject(false)}
+              className="p-1 hover:bg-muted rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Ders Adı</label>
+              <input
+                type="text"
+                value={newSubjectName}
+                onChange={(e) => setNewSubjectName(e.target.value)}
+                placeholder="Örn: Biyoloji"
+                className="w-full p-2 bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">İkon Seçin</label>
+              <div className="flex gap-1 flex-wrap">
+                {subjectIcons.map(icon => (
+                  <button
+                    key={icon}
+                    onClick={() => setNewSubjectIcon(icon)}
+                    className={`w-8 h-8 rounded-md flex items-center justify-center text-lg transition-all ${
+                      newSubjectIcon === icon
+                        ? 'bg-primary/20 ring-2 ring-primary scale-110'
+                        : 'hover:bg-muted/80'
+                    }`}
+                  >
+                    {icon}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              onClick={() => setIsAddingSubject(false)}
+              className="px-4 py-2 text-sm hover:bg-muted rounded-lg transition-colors"
+            >
+              İptal
+            </button>
+            <button
+              onClick={handleAddSubject}
+              disabled={creatingSubject || !newSubjectName.trim()}
+              className="px-6 py-2 bg-primary text-primary-foreground text-sm rounded-lg font-medium hover:opacity-90 disabled:opacity-50 transition-all shadow-md"
+            >
+              {creatingSubject ? 'Oluşturuluyor...' : 'Ders Ekle'}
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       <div className="space-y-2">
         {subjects.map((subject) => (
