@@ -1,72 +1,47 @@
-// Notion-style caching system for ultra-fast data loading
-
+// In-memory cache with TTL and stale-while-revalidate
 interface CacheEntry<T> {
   data: T
   timestamp: number
-  expiresAt: number
+  staleTime: number
 }
 
 class DataCache {
   private cache = new Map<string, CacheEntry<any>>()
-  private readonly DEFAULT_TTL = 5 * 60 * 1000 // 5 minutes
-  private readonly STALE_WHILE_REVALIDATE = 30 * 1000 // 30 seconds
+  private defaultStaleTime = 5 * 60 * 1000 // 5 minutes
 
-  set<T>(key: string, data: T, ttl: number = this.DEFAULT_TTL) {
+  set<T>(key: string, data: T, staleTime?: number): void {
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
-      expiresAt: Date.now() + ttl
+      staleTime: staleTime || this.defaultStaleTime,
     })
   }
 
   get<T>(key: string): T | null {
     const entry = this.cache.get(key)
     if (!entry) return null
-
-    // Return stale data if within stale-while-revalidate window
-    if (Date.now() < entry.expiresAt + this.STALE_WHILE_REVALIDATE) {
-      return entry.data
-    }
-
-    // Data too old, remove it
-    this.cache.delete(key)
-    return null
+    return entry.data as T
   }
 
   isStale(key: string): boolean {
     const entry = this.cache.get(key)
     if (!entry) return true
-    return Date.now() > entry.expiresAt
+    return Date.now() - entry.timestamp > entry.staleTime
   }
 
-  invalidate(pattern?: string) {
-    if (!pattern) {
-      this.cache.clear()
-      return
-    }
-
-    // Invalidate keys matching pattern
-    for (const key of this.cache.keys()) {
-      if (key.includes(pattern)) {
-        this.cache.delete(key)
+  invalidate(prefix: string): void {
+    const keysToDelete: string[] = []
+    this.cache.forEach((_, key) => {
+      if (key.startsWith(prefix)) {
+        keysToDelete.push(key)
       }
-    }
+    })
+    keysToDelete.forEach(key => this.cache.delete(key))
   }
 
-  clear() {
+  clear(): void {
     this.cache.clear()
   }
 }
 
 export const dataCache = new DataCache()
-
-// Optimistic update helper
-export function optimisticUpdate<T>(
-  key: string,
-  updater: (current: T | null) => T
-) {
-  const current = dataCache.get<T>(key)
-  const updated = updater(current)
-  dataCache.set(key, updated)
-  return updated
-}

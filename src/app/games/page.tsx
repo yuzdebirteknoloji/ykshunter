@@ -4,18 +4,22 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Play } from 'lucide-react'
-import { useSubjects, useTopics, usePrefetchTopics, usePrefetchQuestionSets } from '@/hooks/use-queries'
+import { ArrowLeft, Play, Plus, X, Save } from 'lucide-react'
+import { useSubjects, useTopics, usePrefetchTopics, usePrefetchQuestionSets, useCreateTopic } from '@/hooks/use-queries'
 import type { Subject } from '@/lib/supabase'
 import { TopicCardSkeleton } from '@/components/skeleton-loader'
 import { EmptyState } from '@/components/empty-state'
+import { toast } from 'sonner'
 
 export default function TopicsPage() {
   const router = useRouter()
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
+  const [isAddingTopic, setIsAddingTopic] = useState(false)
+  const [newTopicName, setNewTopicName] = useState('')
   
   const { data: subjects = [], isLoading: subjectsLoading } = useSubjects()
   const { data: topics = [], isLoading: topicsLoading } = useTopics(selectedSubject?.id || '')
+  const createTopicMutation = useCreateTopic()
   
   const prefetchTopics = usePrefetchTopics()
   const prefetchQuestions = usePrefetchQuestionSets()
@@ -41,6 +45,26 @@ export default function TopicsPage() {
   
   const handleTopicHover = (topicId: string) => {
     prefetchQuestions(topicId)
+  }
+
+  const handleAddTopic = async () => {
+    if (!newTopicName.trim() || !selectedSubject) {
+      toast.error('Konu adı gerekli')
+      return
+    }
+
+    try {
+      await createTopicMutation.mutateAsync({
+        subjectId: selectedSubject.id,
+        name: newTopicName.trim()
+      })
+      toast.success('Konu başarıyla eklendi')
+      setIsAddingTopic(false)
+      setNewTopicName('')
+    } catch (error: any) {
+      console.error('Error creating topic:', error)
+      toast.error('Konu eklenemedi: ' + error.message)
+    }
   }
 
   if (subjectsLoading) {
@@ -89,11 +113,83 @@ export default function TopicsPage() {
           </div>
 
           {selectedSubject && (
-            <p className="text-base md:text-xl text-muted-foreground mt-4">
-              {selectedSubject.icon} {selectedSubject.name} • {topics.length} Konu
-            </p>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mt-4">
+              <p className="text-base md:text-xl text-muted-foreground">
+                {selectedSubject.icon} {selectedSubject.name} • {topics.length} Konu
+              </p>
+              {!isAddingTopic && (
+                <button
+                  onClick={() => setIsAddingTopic(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-all shadow-md hover:shadow-lg font-medium"
+                >
+                  <Plus className="w-4 h-4" />
+                  Yeni Konu Ekle
+                </button>
+              )}
+            </div>
           )}
         </div>
+
+        {/* Add Topic Form */}
+        {isAddingTopic && selectedSubject && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 bg-muted/50 border border-primary/20 rounded-xl"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-foreground">Yeni Konu Ekle</h3>
+              <button
+                onClick={() => {
+                  setIsAddingTopic(false)
+                  setNewTopicName('')
+                }}
+                className="p-1 hover:bg-muted rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Konu Adı</label>
+                <input
+                  type="text"
+                  value={newTopicName}
+                  onChange={(e) => setNewTopicName(e.target.value)}
+                  placeholder="Örn: Sinir Sistemi"
+                  className="w-full p-2 bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleAddTopic()
+                    }
+                  }}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setIsAddingTopic(false)
+                    setNewTopicName('')
+                  }}
+                  className="px-4 py-2 text-sm hover:bg-muted rounded-lg transition-colors"
+                >
+                  İptal
+                </button>
+                <button
+                  onClick={handleAddTopic}
+                  disabled={createTopicMutation.isPending || !newTopicName.trim()}
+                  className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground text-sm rounded-lg font-medium hover:opacity-90 disabled:opacity-50 transition-all shadow-md"
+                >
+                  <Save className="w-4 h-4" />
+                  {createTopicMutation.isPending ? 'Ekleniyor...' : 'Konu Ekle'}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Topics Grid */}
         {topicsLoading ? (

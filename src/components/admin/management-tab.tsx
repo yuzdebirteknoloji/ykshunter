@@ -705,6 +705,39 @@ function SubjectItem({
   onDeleteImageGame
 }: any) {
   const { data: topics = [], isLoading } = useManagementTopics(subject.id, isExpanded)
+  const [isAddingTopic, setIsAddingTopic] = useState(false)
+  const [newTopicName, setNewTopicName] = useState('')
+  const [creatingTopic, setCreatingTopic] = useState(false)
+  const queryClient = useQueryClient()
+
+  const handleAddTopic = async () => {
+    if (!newTopicName.trim()) {
+      toast.error('Konu adı gerekli')
+      return
+    }
+
+    try {
+      setCreatingTopic(true)
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('topics')
+        .insert({ subject_id: subject.id, name: newTopicName.trim() })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      toast.success('Konu başarıyla eklendi')
+      setIsAddingTopic(false)
+      setNewTopicName('')
+      queryClient.invalidateQueries({ queryKey: ['management'] })
+    } catch (error: any) {
+      console.error('Error creating topic:', error)
+      toast.error('Oluşturma başarısız: ' + error.message)
+    } finally {
+      setCreatingTopic(false)
+    }
+  }
   
   return (
     <div className="bg-card rounded-lg border">
@@ -749,11 +782,71 @@ function SubjectItem({
       {/* Topics */}
       {isExpanded && (
         <div className="px-4 pb-4 space-y-2">
+          {/* Add Topic Button */}
+          {!isAddingTopic && (
+            <button
+              onClick={() => setIsAddingTopic(true)}
+              className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border hover:border-primary/50 rounded-lg text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Yeni Konu Ekle
+            </button>
+          )}
+
+          {/* Add Topic Form */}
+          {isAddingTopic && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-3 bg-muted/50 border border-primary/20 rounded-lg space-y-3"
+            >
+              <div>
+                <label className="block text-xs font-medium mb-1.5">Konu Adı</label>
+                <input
+                  type="text"
+                  value={newTopicName}
+                  onChange={(e) => setNewTopicName(e.target.value)}
+                  placeholder="Örn: Sinir Sistemi"
+                  className="w-full p-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleAddTopic()
+                    } else if (e.key === 'Escape') {
+                      setIsAddingTopic(false)
+                      setNewTopicName('')
+                    }
+                  }}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setIsAddingTopic(false)
+                    setNewTopicName('')
+                  }}
+                  className="px-3 py-1.5 text-xs hover:bg-muted rounded-lg transition-colors"
+                >
+                  İptal
+                </button>
+                <button
+                  onClick={handleAddTopic}
+                  disabled={creatingTopic || !newTopicName.trim()}
+                  className="flex items-center gap-1.5 px-4 py-1.5 bg-primary text-primary-foreground text-xs rounded-lg font-medium hover:opacity-90 disabled:opacity-50 transition-all"
+                >
+                  <Save className="w-3 h-3" />
+                  {creatingTopic ? 'Ekleniyor...' : 'Ekle'}
+                </button>
+              </div>
+            </motion.div>
+          )}
+
           {isLoading ? (
             <div className="text-sm text-muted-foreground text-center py-4">
               Yükleniyor...
             </div>
-          ) : topics.length === 0 ? (
+          ) : topics.length === 0 && !isAddingTopic ? (
             <div className="text-sm text-muted-foreground text-center py-4">
               Konu yok
             </div>
