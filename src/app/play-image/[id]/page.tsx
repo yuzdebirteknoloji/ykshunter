@@ -95,29 +95,37 @@ export default function PlayImageGamePage() {
   }
 
   const handleNextGame = () => {
-    setImageLoaded(false) // Reset image loaded state
+    // Clear all states first
+    setImageLoaded(false)
+    setSelectedRegions({})
+    setShowResult(false)
+    setShowCorrectAnswers(false)
+    setScore(0)
+    setSelectedLabel(null)
+    setHoveredRegion(null)
     
-    // Clear canvas immediately to prevent showing old image
+    // Clear canvas immediately to prevent showing old image and markings
     const canvas = canvasRef.current
     if (canvas) {
       const ctx = canvas.getContext('2d')
       if (ctx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height)
+        // Fill with background color to ensure complete clear
+        ctx.fillStyle = '#f3f4f6'
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
       }
     }
     
     const nextIndex = (currentGameIndex + 1) % allGames.length
     setCurrentGameIndex(nextIndex)
     const nextGame = allGames[nextIndex]
+    
+    // Update game and labels
     setGame(nextGame)
-    setSelectedRegions({})
     const labels = nextGame.regions.map(r => r.label).sort(() => Math.random() - 0.5)
     setAvailableLabels(labels)
-    setShowResult(false)
-    setShowCorrectAnswers(false)
-    setScore(0)
-    setSelectedLabel(null)
     
+    // Load new image
     const img = new Image()
     img.crossOrigin = 'anonymous'
     img.onload = () => {
@@ -125,7 +133,8 @@ export default function PlayImageGamePage() {
         imageRef.current.src = nextGame.image_url
       }
       setImageLoaded(true)
-      drawCanvas()
+      // Use setTimeout to ensure state updates are complete
+      setTimeout(() => drawCanvas(), 0)
     }
     img.onerror = () => {
       console.error('Failed to load image')
@@ -145,6 +154,9 @@ export default function PlayImageGamePage() {
     // Use natural image size for canvas
     canvas.width = img.naturalWidth
     canvas.height = img.naturalHeight
+    
+    // Clear canvas completely before drawing
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
     
     // No scaling needed - 1:1 ratio
     const scaleX = 1
@@ -418,8 +430,10 @@ export default function PlayImageGamePage() {
   }
 
   useEffect(() => {
-    drawCanvas()
-  }, [selectedRegions, game, showCorrectAnswers, hoveredRegion])
+    if (imageLoaded) {
+      drawCanvas()
+    }
+  }, [selectedRegions, game, showCorrectAnswers, hoveredRegion, imageLoaded])
 
   if (loading) {
     return (
