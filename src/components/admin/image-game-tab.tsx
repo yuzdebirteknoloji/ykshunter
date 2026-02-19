@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { uploadToCloudinary } from '@/lib/cloudinary'
-import { createImageGame, deleteImageGame, getSubjects, getTopicsBySubject, ImageGame, ImageGameRegion } from '@/lib/supabase'
+import { createImageGame, deleteImageGame, getTopicsBySubject, ImageGameRegion } from '@/lib/supabase'
 import { Trash2, Square, Edit3, Pentagon, X } from 'lucide-react'
 import { useImageGames, useSubjects } from '@/hooks/use-queries'
 import { useQueryClient } from '@tanstack/react-query'
@@ -17,7 +17,6 @@ export function ImageGameTab() {
   
   const [gameMode, setGameMode] = useState<GameMode>('region')
   const [allTopics, setAllTopics] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
   const [showGames, setShowGames] = useState(false)
 
   useEffect(() => {

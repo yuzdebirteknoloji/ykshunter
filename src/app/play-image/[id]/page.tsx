@@ -96,6 +96,16 @@ export default function PlayImageGamePage() {
 
   const handleNextGame = () => {
     setImageLoaded(false) // Reset image loaded state
+    
+    // Clear canvas immediately to prevent showing old image
+    const canvas = canvasRef.current
+    if (canvas) {
+      const ctx = canvas.getContext('2d')
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+      }
+    }
+    
     const nextIndex = (currentGameIndex + 1) % allGames.length
     setCurrentGameIndex(nextIndex)
     const nextGame = allGames[nextIndex]
@@ -163,16 +173,15 @@ export default function PlayImageGamePage() {
         
         // For text-cover mode, draw opaque white background to cover text completely
         if (isTextCoverMode && !showCorrectAnswers) {
-          // Use source-over to ensure complete coverage
+          ctx.save()
           ctx.globalCompositeOperation = 'source-over'
+          ctx.globalAlpha = 1.0
           ctx.fillStyle = '#ffffff'
           ctx.fill()
-          // Add multiple layers for better coverage
-          ctx.fill()
-          // Add a subtle border
           ctx.strokeStyle = '#d1d5db'
           ctx.lineWidth = 1
           ctx.stroke()
+          ctx.restore()
         }
         
         if (showCorrectAnswers) {
@@ -227,16 +236,15 @@ export default function PlayImageGamePage() {
       } else {
         // For text-cover mode, draw opaque white background to cover text completely
         if (isTextCoverMode && !showCorrectAnswers) {
-          // Use source-over to ensure complete coverage
+          ctx.save()
           ctx.globalCompositeOperation = 'source-over'
+          ctx.globalAlpha = 1.0
           ctx.fillStyle = '#ffffff'
           ctx.fillRect(region.x, region.y, region.width, region.height)
-          // Add multiple layers for better coverage
-          ctx.fillRect(region.x, region.y, region.width, region.height)
-          // Add a subtle border
           ctx.strokeStyle = '#d1d5db'
           ctx.lineWidth = 1
           ctx.strokeRect(region.x, region.y, region.width, region.height)
+          ctx.restore()
         }
         
         if (showCorrectAnswers) {
@@ -388,6 +396,15 @@ export default function PlayImageGamePage() {
   const handleReset = () => {
     if (!game) return
     
+    // Clear canvas immediately
+    const canvas = canvasRef.current
+    if (canvas) {
+      const ctx = canvas.getContext('2d')
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+      }
+    }
+    
     setSelectedRegions({})
     const labels = game.regions.map(r => r.label).sort(() => Math.random() - 0.5)
     setAvailableLabels(labels)
@@ -395,7 +412,9 @@ export default function PlayImageGamePage() {
     setShowCorrectAnswers(false)
     setScore(0)
     setSelectedLabel(null)
-    drawCanvas()
+    
+    // Redraw after state updates
+    setTimeout(() => drawCanvas(), 0)
   }
 
   useEffect(() => {
