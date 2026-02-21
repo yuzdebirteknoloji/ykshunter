@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Trash2, Edit2, ChevronDown, ChevronRight, X, Save, Plus } from 'lucide-react'
+import { Trash2, Edit2, ChevronDown, ChevronRight, X, Save, Plus, MoveRight, CheckSquare, Square } from 'lucide-react'
 import { createClient, createSubject } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useManagementSubjects, useManagementTopics, useManagementQuestionSets } from '@/hooks/use-queries'
@@ -888,6 +888,109 @@ function TopicItem({
   const questionSets = data?.questionSets || []
   const imageGames = data?.imageGames || []
   
+  // Bulk move state
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
+  const [showBulkMoveDialog, setShowBulkMoveDialog] = useState(false)
+  const [bulkTargetTopic, setBulkTargetTopic] = useState('')
+  const [bulkMoving, setBulkMoving] = useState(false)
+  const [allTopics, setAllTopics] = useState<any[]>([])
+  const queryClient = useQueryClient()
+
+  const toggleItemSelection = (id: string) => {
+    const newSelected = new Set(selectedItems)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedItems(newSelected)
+  }
+
+  const selectAll = () => {
+    const allIds = new Set([
+      ...questionSets.map((s: any) => `set-${s.id}`),
+      ...imageGames.map((g: any) => `game-${g.id}`)
+    ])
+    setSelectedItems(allIds)
+  }
+
+  const deselectAll = () => {
+    setSelectedItems(new Set())
+  }
+
+  const loadAllTopics = async () => {
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('topics')
+        .select('id, name, subject_id, subjects(name)')
+        .order('name')
+      
+      if (error) throw error
+      setAllTopics(data || [])
+    } catch (error) {
+      console.error('Error loading topics:', error)
+    }
+  }
+
+  const handleBulkMove = async () => {
+    if (!bulkTargetTopic || bulkTargetTopic === topic.id) {
+      toast.error('Lütfen farklı bir konu seçin')
+      return
+    }
+
+    if (selectedItems.size === 0) {
+      toast.error('Lütfen en az bir içerik seçin')
+      return
+    }
+
+    try {
+      setBulkMoving(true)
+      const supabase = createClient()
+
+      // Separate sets and games
+      const setIds = Array.from(selectedItems)
+        .filter(id => id.startsWith('set-'))
+        .map(id => id.replace('set-', ''))
+      
+      const gameIds = Array.from(selectedItems)
+        .filter(id => id.startsWith('game-'))
+        .map(id => id.replace('game-', ''))
+
+      // Move question sets
+      if (setIds.length > 0) {
+        const { error: setError } = await supabase
+          .from('question_sets')
+          .update({ topic_id: bulkTargetTopic })
+          .in('id', setIds)
+
+        if (setError) throw setError
+      }
+
+      // Move image games
+      if (gameIds.length > 0) {
+        const { error: gameError } = await supabase
+          .from('image_games')
+          .update({ topic_id: bulkTargetTopic })
+          .in('id', gameIds)
+
+        if (gameError) throw gameError
+      }
+
+      toast.success(`${selectedItems.size} içerik başarıyla taşındı`)
+      setShowBulkMoveDialog(false)
+      setSelectedItems(new Set())
+      queryClient.invalidateQueries({ queryKey: ['management'] })
+    } catch (error: any) {
+      console.error('Error bulk moving:', error)
+      toast.error('Toplu taşıma başarısız: ' + error.message)
+    } finally {
+      setBulkMoving(false)
+    }
+  }
+
+  const hasContent = questionSets.length > 0 || imageGames.length > 0
+  
   return (
     <div className="bg-muted rounded-lg border border-border">
       {/* Topic Header */}
@@ -930,71 +1033,68 @@ function TopicItem({
 
       {/* Question Sets */}
       {isExpanded && (
-        <div className="px-3 pb-3 space-y-1">
+        <div className="px-3 pb-3 space-y-2">
           {isLoading ? (
             <div className="text-xs text-muted-foreground text-center py-2">
               Yükleniyor...
             </div>
           ) : (
             <>
-              {questionSets.map((set: any) => (
-                <div
-                  key={set.id}
-                  className="flex items-center justify-between p-2 bg-background rounded border border-border"
-                >
+              {/* Bulk Actions Bar */}
+              {hasContent && (
+                <div className="flex items-center justify-between p-2 bg-primary/5 rounded-lg border border-primary/20">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded">
-                      {set.mode}
-                    </span>
-                    <span className="text-sm text-foreground">
-                      {set.data?.length || 0} soru
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
                     <button
-                      onClick={() => onEditSet(set)}
-                      className="p-1 text-blue-500 hover:bg-blue-500/10 rounded transition-colors"
-                      title="Düzenle"
+                      onClick={selectedItems.size === 0 ? selectAll : deselectAll}
+                      className="text-xs px-2 py-1 bg-primary/10 hover:bg-primary/20 text-primary rounded transition-colors"
                     >
-                      <Edit2 className="w-3 h-3" />
+                      {selectedItems.size === 0 ? '☑️ Tümünü Seç' : '❌ Seçimi Temizle'}
                     </button>
-                    <button
-                      onClick={() => onDeleteSet(set.id)}
-                      disabled={deleting === set.id}
-                      className="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
-                      title="Sil"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
+                    {selectedItems.size > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        {selectedItems.size} içerik seçildi
+                      </span>
+                    )}
                   </div>
+                  {selectedItems.size > 0 && (
+                    <button
+                      onClick={() => {
+                        setShowBulkMoveDialog(true)
+                        loadAllTopics()
+                      }}
+                      className="flex items-center gap-1 text-xs px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+                    >
+                      <MoveRight className="w-3 h-3" />
+                      Toplu Taşı
+                    </button>
+                  )}
                 </div>
+              )}
+
+              {questionSets.map((set: any) => (
+                <QuestionSetItem
+                  key={set.id}
+                  set={set}
+                  topicId={topic.id}
+                  onEdit={onEditSet}
+                  onDelete={onDeleteSet}
+                  deleting={deleting}
+                  isSelected={selectedItems.has(`set-${set.id}`)}
+                  onToggleSelect={() => toggleItemSelection(`set-${set.id}`)}
+                />
               ))}
               
               {/* Image Games */}
               {imageGames.map((game: any) => (
-                <div
+                <ImageGameItem
                   key={game.id}
-                  className="flex items-center justify-between p-2 bg-background rounded border border-border"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs px-2 py-1 bg-pink-500/10 text-pink-500 rounded">
-                      🖼️ görsel
-                    </span>
-                    <span className="text-sm text-foreground">
-                      {game.title}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      ({game.regions?.length || 0} bölge)
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => onDeleteImageGame(game.id)}
-                    disabled={deleting === game.id}
-                    className="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
+                  game={game}
+                  topicId={topic.id}
+                  onDelete={onDeleteImageGame}
+                  deleting={deleting}
+                  isSelected={selectedItems.has(`game-${game.id}`)}
+                  onToggleSelect={() => toggleItemSelection(`game-${game.id}`)}
+                />
               ))}
               
               {questionSets.length === 0 && imageGames.length === 0 && (
@@ -1006,6 +1106,413 @@ function TopicItem({
           )}
         </div>
       )}
+
+      {/* Bulk Move Dialog */}
+      {showBulkMoveDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-card border rounded-xl p-6 max-w-md w-full shadow-2xl"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">Toplu İçerik Taşıma</h3>
+              <button
+                onClick={() => setShowBulkMoveDialog(false)}
+                className="p-2 hover:bg-muted rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  📦 {selectedItems.size} içerik taşınacak
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Hedef Konu Seçin
+                </label>
+                <select
+                  value={bulkTargetTopic}
+                  onChange={(e) => setBulkTargetTopic(e.target.value)}
+                  className="w-full p-3 bg-muted border border-border rounded-lg"
+                >
+                  <option value="">Konu seçin...</option>
+                  {allTopics.map((t: any) => (
+                    <option 
+                      key={t.id} 
+                      value={t.id}
+                      disabled={t.id === topic.id}
+                    >
+                      {t.subjects?.name} → {t.name}
+                      {t.id === topic.id ? ' (mevcut)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={handleBulkMove}
+                  disabled={bulkMoving || !bulkTargetTopic || bulkTargetTopic === topic.id}
+                  className="flex-1 bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-all"
+                >
+                  {bulkMoving ? 'Taşınıyor...' : `${selectedItems.size} İçeriği Taşı`}
+                </button>
+                <button
+                  onClick={() => setShowBulkMoveDialog(false)}
+                  disabled={bulkMoving}
+                  className="px-6 py-3 bg-muted rounded-lg font-medium hover:bg-muted/80 disabled:opacity-50 transition-all"
+                >
+                  İptal
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
+  )
+}
+
+// Question Set Item with Move functionality
+function QuestionSetItem({ set, topicId, onEdit, onDelete, deleting, isSelected, onToggleSelect }: any) {
+  const [showMoveDialog, setShowMoveDialog] = useState(false)
+  const [selectedTopic, setSelectedTopic] = useState('')
+  const [moving, setMoving] = useState(false)
+  const { data: subjects = [] } = useManagementSubjects()
+  const [allTopics, setAllTopics] = useState<any[]>([])
+  const queryClient = useQueryClient()
+
+  // Load all topics when dialog opens
+  const loadAllTopics = async () => {
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('topics')
+        .select('id, name, subject_id, subjects(name)')
+        .order('name')
+      
+      if (error) throw error
+      setAllTopics(data || [])
+    } catch (error) {
+      console.error('Error loading topics:', error)
+    }
+  }
+
+  const handleMove = async () => {
+    if (!selectedTopic || selectedTopic === topicId) {
+      toast.error('Lütfen farklı bir konu seçin')
+      return
+    }
+
+    try {
+      setMoving(true)
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('question_sets')
+        .update({ topic_id: selectedTopic })
+        .eq('id', set.id)
+
+      if (error) throw error
+
+      toast.success('Soru seti taşındı')
+      setShowMoveDialog(false)
+      queryClient.invalidateQueries({ queryKey: ['management'] })
+    } catch (error: any) {
+      console.error('Error moving question set:', error)
+      toast.error('Taşıma başarısız: ' + error.message)
+    } finally {
+      setMoving(false)
+    }
+  }
+
+  return (
+    <>
+      <div className={`flex items-center justify-between p-2 bg-background rounded border transition-all ${
+        isSelected ? 'border-primary bg-primary/5' : 'border-border'
+      }`}>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onToggleSelect}
+            className="p-1 hover:bg-muted rounded transition-colors"
+            title={isSelected ? 'Seçimi kaldır' : 'Seç'}
+          >
+            {isSelected ? (
+              <CheckSquare className="w-4 h-4 text-primary" />
+            ) : (
+              <Square className="w-4 h-4 text-muted-foreground" />
+            )}
+          </button>
+          <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded">
+            {set.mode}
+          </span>
+          <span className="text-sm text-foreground">
+            {set.data?.length || 0} soru
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => {
+              setShowMoveDialog(true)
+              loadAllTopics()
+            }}
+            className="p-1 text-green-500 hover:bg-green-500/10 rounded transition-colors"
+            title="Başka konuya taşı"
+          >
+            <MoveRight className="w-3 h-3" />
+          </button>
+          <button
+            onClick={() => onEdit(set)}
+            className="p-1 text-blue-500 hover:bg-blue-500/10 rounded transition-colors"
+            title="Düzenle"
+          >
+            <Edit2 className="w-3 h-3" />
+          </button>
+          <button
+            onClick={() => onDelete(set.id)}
+            disabled={deleting === set.id}
+            className="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
+            title="Sil"
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+
+      {/* Move Dialog */}
+      {showMoveDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-card border rounded-xl p-6 max-w-md w-full shadow-2xl"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">Soru Setini Taşı</h3>
+              <button
+                onClick={() => setShowMoveDialog(false)}
+                className="p-2 hover:bg-muted rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Hedef Konu Seçin
+                </label>
+                <select
+                  value={selectedTopic}
+                  onChange={(e) => setSelectedTopic(e.target.value)}
+                  className="w-full p-3 bg-muted border border-border rounded-lg"
+                >
+                  <option value="">Konu seçin...</option>
+                  {allTopics.map((topic: any) => (
+                    <option 
+                      key={topic.id} 
+                      value={topic.id}
+                      disabled={topic.id === topicId}
+                    >
+                      {topic.subjects?.name} → {topic.name}
+                      {topic.id === topicId ? ' (mevcut)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={handleMove}
+                  disabled={moving || !selectedTopic || selectedTopic === topicId}
+                  className="flex-1 bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-all"
+                >
+                  {moving ? 'Taşınıyor...' : 'Taşı'}
+                </button>
+                <button
+                  onClick={() => setShowMoveDialog(false)}
+                  disabled={moving}
+                  className="px-6 py-3 bg-muted rounded-lg font-medium hover:bg-muted/80 disabled:opacity-50 transition-all"
+                >
+                  İptal
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </>
+  )
+}
+
+// Image Game Item with Move functionality
+function ImageGameItem({ game, topicId, onDelete, deleting, isSelected, onToggleSelect }: any) {
+  const [showMoveDialog, setShowMoveDialog] = useState(false)
+  const [selectedTopic, setSelectedTopic] = useState('')
+  const [moving, setMoving] = useState(false)
+  const { data: subjects = [] } = useManagementSubjects()
+  const [allTopics, setAllTopics] = useState<any[]>([])
+  const queryClient = useQueryClient()
+
+  // Load all topics when dialog opens
+  const loadAllTopics = async () => {
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('topics')
+        .select('id, name, subject_id, subjects(name)')
+        .order('name')
+      
+      if (error) throw error
+      setAllTopics(data || [])
+    } catch (error) {
+      console.error('Error loading topics:', error)
+    }
+  }
+
+  const handleMove = async () => {
+    if (!selectedTopic || selectedTopic === topicId) {
+      toast.error('Lütfen farklı bir konu seçin')
+      return
+    }
+
+    try {
+      setMoving(true)
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('image_games')
+        .update({ topic_id: selectedTopic })
+        .eq('id', game.id)
+
+      if (error) throw error
+
+      toast.success('Görsel oyun taşındı')
+      setShowMoveDialog(false)
+      queryClient.invalidateQueries({ queryKey: ['management'] })
+    } catch (error: any) {
+      console.error('Error moving image game:', error)
+      toast.error('Taşıma başarısız: ' + error.message)
+    } finally {
+      setMoving(false)
+    }
+  }
+
+  return (
+    <>
+      <div className={`flex items-center justify-between p-2 bg-background rounded border transition-all ${
+        isSelected ? 'border-primary bg-primary/5' : 'border-border'
+      }`}>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onToggleSelect}
+            className="p-1 hover:bg-muted rounded transition-colors"
+            title={isSelected ? 'Seçimi kaldır' : 'Seç'}
+          >
+            {isSelected ? (
+              <CheckSquare className="w-4 h-4 text-primary" />
+            ) : (
+              <Square className="w-4 h-4 text-muted-foreground" />
+            )}
+          </button>
+          <span className="text-xs px-2 py-1 bg-pink-500/10 text-pink-500 rounded">
+            🖼️ görsel
+          </span>
+          <span className="text-sm text-foreground">
+            {game.title}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            ({game.regions?.length || 0} bölge)
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => {
+              setShowMoveDialog(true)
+              loadAllTopics()
+            }}
+            className="p-1 text-green-500 hover:bg-green-500/10 rounded transition-colors"
+            title="Başka konuya taşı"
+          >
+            <MoveRight className="w-3 h-3" />
+          </button>
+          <button
+            onClick={() => onDelete(game.id)}
+            disabled={deleting === game.id}
+            className="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
+            title="Sil"
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+
+      {/* Move Dialog */}
+      {showMoveDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-card border rounded-xl p-6 max-w-md w-full shadow-2xl"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">Görsel Oyunu Taşı</h3>
+              <button
+                onClick={() => setShowMoveDialog(false)}
+                className="p-2 hover:bg-muted rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Hedef Konu Seçin
+                </label>
+                <select
+                  value={selectedTopic}
+                  onChange={(e) => setSelectedTopic(e.target.value)}
+                  className="w-full p-3 bg-muted border border-border rounded-lg"
+                >
+                  <option value="">Konu seçin...</option>
+                  {allTopics.map((topic: any) => (
+                    <option 
+                      key={topic.id} 
+                      value={topic.id}
+                      disabled={topic.id === topicId}
+                    >
+                      {topic.subjects?.name} → {topic.name}
+                      {topic.id === topicId ? ' (mevcut)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={handleMove}
+                  disabled={moving || !selectedTopic || selectedTopic === topicId}
+                  className="flex-1 bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-all"
+                >
+                  {moving ? 'Taşınıyor...' : 'Taşı'}
+                </button>
+                <button
+                  onClick={() => setShowMoveDialog(false)}
+                  disabled={moving}
+                  className="px-6 py-3 bg-muted rounded-lg font-medium hover:bg-muted/80 disabled:opacity-50 transition-all"
+                >
+                  İptal
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </>
   )
 }
