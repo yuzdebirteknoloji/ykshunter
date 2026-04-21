@@ -611,3 +611,120 @@ export async function deleteTrialAnalysis(id: string) {
 
   if (error) throw error
 }
+
+// ============================================
+// MINDMAP EXAM ANALYSES
+// ============================================
+
+export interface MindmapAnalysis {
+  id: string
+  user_id: string
+  exam_type: string
+  course_name: string
+  unit_name: string | null
+  image_url: string
+  note?: string
+  is_solved: boolean
+  created_at: string
+  updated_at: string
+}
+
+export async function getMindmapAnalyses(examType: string, courseName: string, unitName?: string | null) {
+  if (isMockMode) {
+    return []
+  }
+
+  if (!supabase) {
+    throw new Error('Supabase client not initialized')
+  }
+
+  let query = supabase
+    .from('mindmap_analyses')
+    .select('*')
+    .eq('exam_type', examType)
+    .eq('course_name', courseName)
+
+  if (unitName !== undefined && unitName !== null) {
+    query = query.eq('unit_name', unitName)
+  } else {
+    query = query.is('unit_name', null)
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data as MindmapAnalysis[]
+}
+
+export async function createMindmapAnalysis(data: {
+  exam_type: string
+  course_name: string
+  unit_name: string | null
+  image_url: string
+  note?: string
+  user_id?: string
+}) {
+  if (isMockMode) {
+    return { id: 'mock-id', ...data, is_solved: false, created_at: new Date().toISOString() }
+  }
+
+  if (!supabase) {
+    throw new Error('Supabase client not initialized')
+  }
+
+  let userId = data.user_id
+  if (!userId) {
+    const { data: userData } = await supabase.auth.getUser()
+    userId = userData.user?.id
+  }
+
+  const { data: result, error } = await supabase
+    .from('mindmap_analyses')
+    .insert([{
+      exam_type: data.exam_type,
+      course_name: data.course_name,
+      unit_name: data.unit_name,
+      image_url: data.image_url,
+      note: data.note,
+      user_id: userId
+    }])
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Database Insert Error:', error)
+    throw error
+  }
+  return result as MindmapAnalysis
+}
+
+export async function toggleMindmapAnalysisSolved(id: string, isSolved: boolean) {
+  if (isMockMode) return
+
+  if (!supabase) {
+    throw new Error('Supabase client not initialized')
+  }
+
+  const { error } = await supabase
+    .from('mindmap_analyses')
+    .update({ is_solved: isSolved, updated_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+export async function deleteMindmapAnalysis(id: string) {
+  if (isMockMode) return
+
+  if (!supabase) {
+    throw new Error('Supabase client not initialized')
+  }
+
+  const { error } = await supabase
+    .from('mindmap_analyses')
+    .delete()
+    .eq('id', id)
+
+  if (error) throw error
+}
+

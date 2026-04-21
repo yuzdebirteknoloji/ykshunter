@@ -4,7 +4,7 @@ import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import { QueryProvider } from '@/providers/query-provider'
 import { Sidebar, SidebarBody, SidebarLink } from '@/components/ui/sidebar'
-import { Home, Gamepad2, Settings, User, Moon, Sun, LogOut, LayoutDashboard, NotebookPen } from 'lucide-react'
+import { Home, Gamepad2, Settings, User, Moon, Sun, LogOut, LayoutDashboard, NotebookPen, Network } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import { useRouter } from 'next/navigation'
@@ -39,6 +39,11 @@ const links = [
     label: 'Deneme Analizi',
     href: '/trial-analysis',
     icon: <NotebookPen className="text-foreground h-5 w-5 flex-shrink-0" />,
+  },
+  {
+    label: 'Ağaç Analizi',
+    href: '/mindmap-analysis',
+    icon: <Network className="text-foreground h-5 w-5 flex-shrink-0" />,
   },
 ]
 
