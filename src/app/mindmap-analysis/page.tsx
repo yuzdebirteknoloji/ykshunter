@@ -480,13 +480,12 @@ function UploadModal({ isOpen, onClose, defaultLeaf }: { isOpen: boolean, onClos
 
                             {/* Comment */}
                             <div>
-                                <input 
-                                    type="text" 
+                                <textarea 
                                     value={note} 
                                     onChange={e => setNote(e.target.value)} 
-                                    maxLength={150} 
+                                    rows={3}
                                     placeholder="Tek cümlelik hata analizi veya not (Opsiyonel)"
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-colors"
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-colors resize-none"
                                 />
                             </div>
 
