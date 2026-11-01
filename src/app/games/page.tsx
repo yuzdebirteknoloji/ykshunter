@@ -50,7 +50,9 @@ export default function TopicsPage() {
 
   useEffect(() => {
     if (subjects.length > 0 && !selectedSubject) {
-      setSelectedSubject(subjects[0])
+      // Ana sayfadan bir derse dokunulduysa o ders seçili gelsin
+      const wanted = new URLSearchParams(window.location.search).get('subject')
+      setSelectedSubject(subjects.find((s: Subject) => s.id === wanted) || subjects[0])
       
       // Prefetch other subjects
       subjects.slice(1, 4).forEach(subject => {
@@ -93,14 +95,14 @@ export default function TopicsPage() {
 
   if (subjectsLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-full bg-background flex items-center justify-center">
         <div className="text-foreground">Yükleniyor...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-full bg-background">
       <div className="max-w-6xl mx-auto p-4 md:p-6 lg:p-10">
         {/* Header */}
         <div className="mb-6 md:mb-8">

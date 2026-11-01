@@ -47,7 +47,7 @@ function TopicDetailPageContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-full bg-background flex items-center justify-center">
         <div className="text-foreground">Yükleniyor...</div>
       </div>
     )
@@ -55,7 +55,7 @@ function TopicDetailPageContent() {
 
   if (!topic) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-full bg-background flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground mb-2">Konu bulunamadı</h1>
           <button
@@ -130,7 +130,7 @@ function TopicDetailPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-full bg-background">
       <div className="max-w-4xl mx-auto p-4 md:p-6 lg:p-10">
         {/* Header */}
         <div className="mb-6 md:mb-8">
@@ -273,7 +273,7 @@ function TopicDetailPageContent() {
 
 export default function TopicDetailPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-muted-foreground">Yükleniyor...</div>}>
+    <Suspense fallback={<div className="min-h-full flex items-center justify-center text-muted-foreground">Yükleniyor...</div>}>
       <TopicDetailPageContent />
     </Suspense>
   )

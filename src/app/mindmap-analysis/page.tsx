@@ -106,6 +106,19 @@ const findLeafById = (nodes: TreeNode[], id: string): LeafNode | null => {
   return null;
 }
 
+// Tüm yaprakları "TYT › Fizik › Optik" etiketiyle düz liste olarak verir (modal içi seçim için)
+const ALL_LEAVES: { leaf: LeafNode; label: string }[] = (() => {
+  const out: { leaf: LeafNode; label: string }[] = []
+  const walk = (nodes: TreeNode[], trail: string[]) => {
+    for (const n of nodes) {
+      if (n.type === 'leaf') out.push({ leaf: n, label: [...trail, n.label].join(' › ') })
+      else walk(n.children, [...trail, n.label])
+    }
+  }
+  walk(YKS_TREE, [])
+  return out
+})()
+
 const findPathToNode = (nodes: TreeNode[], targetId: string, path: string[] = []): string[] | null => {
     for (const node of nodes) {
         if (node.id === targetId) return [...path, node.id];
@@ -120,7 +133,13 @@ const findPathToNode = (nodes: TreeNode[], targetId: string, path: string[] = []
 export default function MindmapAnalysisPage() {
     // We enforce a pure black dark mode context specifically for this page.
     useEffect(() => {
-        document.documentElement.classList.add('dark')
+        const root = document.documentElement
+        const wasDark = root.classList.contains('dark')
+        root.classList.add('dark')
+        // Sayfadan çıkınca kullanıcının kendi temasına geri dön
+        return () => {
+            if (!wasDark) root.classList.remove('dark')
+        }
     }, [])
 
     const [activePath, setActivePath] = useState<string[]>([])
@@ -151,9 +170,9 @@ export default function MindmapAnalysisPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#000000] text-gray-200 font-sans p-4 md:p-8 flex flex-col items-center">
+        <div className="min-h-full bg-[#000000] text-gray-200 font-sans p-4 md:p-8 flex flex-col items-center">
             {/* Header */}
-            <div className="w-full max-w-5xl mb-12 text-center md:text-left mt-6 border-b border-white/10 pb-6 flex flex-col md:flex-row items-center justify-between">
+            <div className="w-full max-w-5xl mb-8 md:mb-12 text-center md:text-left mt-2 md:mt-6 border-b border-white/10 pb-6 flex flex-col md:flex-row items-center justify-between">
                 <div>
                     <h1 className="text-3xl md:text-4xl font-light tracking-wider text-white">
                         Ağaç <span className="font-semibold">Analizi</span>
@@ -162,6 +181,13 @@ export default function MindmapAnalysisPage() {
                         Odak Modu ile hiyerarşik deneme ve hata takibi. Minimalist siyah.
                     </p>
                 </div>
+                <button
+                    onClick={() => setIsUploadModalOpen(true)}
+                    className="mt-5 md:mt-0 inline-flex items-center gap-2 px-5 py-3 rounded-full bg-white text-black font-medium active:scale-95 transition-transform"
+                >
+                    <Camera className="w-5 h-5" />
+                    Fotoğraf + not ekle
+                </button>
             </div>
 
             {/* Main Layout */}
@@ -219,7 +245,8 @@ export default function MindmapAnalysisPage() {
             {/* Mobile-Friendly FAB */}
             <button 
                 onClick={() => setIsUploadModalOpen(true)}
-                className="fixed bottom-6 right-6 md:bottom-10 md:right-10 w-16 h-16 bg-white text-black rounded-full shadow-[0_0_30px_rgba(255,255,255,0.15)] flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-40"
+                aria-label="Soru ekle"
+                className="fixed right-5 bottom-[calc(var(--bottom-nav-h)+var(--sab)+1rem)] md:bottom-10 md:right-10 w-16 h-16 bg-white text-black rounded-full shadow-[0_0_30px_rgba(255,255,255,0.15)] flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-40"
             >
                 <Plus className="w-7 h-7" />
             </button>
@@ -441,22 +468,26 @@ function UploadModal({ isOpen, onClose, defaultLeaf }: { isOpen: boolean, onClos
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
                     <motion.div 
                         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                        className="bg-[#111] border border-white/10 w-full max-w-lg rounded-t-3xl md:rounded-2xl p-6 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto"
+                        className="bg-[#111] border border-white/10 w-full max-w-lg rounded-t-3xl md:rounded-2xl p-6 pb-[calc(1.5rem+var(--sab))] md:pb-6 relative z-10 shadow-2xl max-h-[90dvh] overflow-y-auto"
                     >
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-medium text-white">Soru Ekle</h3>
                             <button onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10"><X className="w-5 h-5" /></button>
                         </div>
 
-                        {!selectedLeaf ? (
-                            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-200 rounded-lg text-sm">
-                                Lütfen önce arka plandaki ağaçtan bir ünite/ders seçin. (Veya menüden tıklayıp gelin).
-                            </div>
-                        ) : (
-                            <div className="mb-6 text-sm text-gray-400">
-                                Hedef: <span className="text-white font-medium bg-white/10 px-2 py-1 rounded">{selectedLeaf.examType} ➔ {selectedLeaf.courseName} {selectedLeaf.unitName ? `➔ ${selectedLeaf.unitName}` : ''}</span>
-                            </div>
-                        )}
+                        <div className="mb-6">
+                            <label className="block text-xs text-gray-400 mb-2">Nereye eklensin?</label>
+                            <select
+                                value={selectedLeaf?.id ?? ''}
+                                onChange={(e) => setSelectedLeaf(ALL_LEAVES.find((x) => x.leaf.id === e.target.value)?.leaf ?? null)}
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30"
+                            >
+                                <option value="" className="bg-[#111]">Ders / ünite seç…</option>
+                                {ALL_LEAVES.map(({ leaf, label }) => (
+                                    <option key={leaf.id} value={leaf.id} className="bg-[#111]">{label}</option>
+                                ))}
+                            </select>
+                        </div>
 
                         <div className="grid gap-6">
                             {/* Upload Area */}
@@ -473,7 +504,7 @@ function UploadModal({ isOpen, onClose, defaultLeaf }: { isOpen: boolean, onClos
                                             <Camera className="w-6 h-6" />
                                         </div>
                                         <p className="text-white font-medium mb-1">Fotoğraf Çek / Seç</p>
-                                        <p className="text-xs text-gray-400">Mobil kameranızla doğrudan çekebilirsiniz</p>
+                                        <p className="text-xs text-gray-400">Kamera ile çekebilir veya galeriden seçebilirsin</p>
                                     </label>
                                 )}
                             </div>
@@ -510,7 +541,7 @@ function UploadModal({ isOpen, onClose, defaultLeaf }: { isOpen: boolean, onClos
 // ==========================================
 function ImagePreviewModal({ analysis, onClose }: { analysis: MindmapAnalysis, onClose: () => void }) {
     return (
-        <div className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-md">
+        <div className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-md pt-safe pb-safe">
             <div className="flex justify-between items-center p-4 border-b border-white/10 bg-black/50">
                 <div className="text-gray-400 text-sm">
                     {analysis.exam_type} &bull; {analysis.course_name} {analysis.unit_name ? `• ${analysis.unit_name}` : ''}

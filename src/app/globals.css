@@ -110,3 +110,9 @@ html, body {
 @media (max-width: 767px) {
   input, textarea, select { font-size: 16px; } /* odaklanınca otomatik zoom olmasın */
 }
+
+/* Ortalanmış modallar durum çubuğu / hareket çubuğu altında kalmasın */
+.fixed.inset-0.p-4 {
+  padding-top: calc(1rem + var(--sat));
+  padding-bottom: calc(1rem + var(--sab));
+}

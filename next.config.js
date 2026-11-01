@@ -21,6 +21,11 @@ const nextConfig = {
     remotePatterns: [{ protocol: 'https', hostname: 'res.cloudinary.com' }],
   },
 
+  // APK derlemesinde Supabase istemcisi pakete girmesin
+  turbopack: isLocalApp
+    ? { resolveAlias: { '@supabase/ssr': './src/lib/supabase/ssr-stub.ts' } }
+    : {},
+
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion', '@supabase/supabase-js'],
   },

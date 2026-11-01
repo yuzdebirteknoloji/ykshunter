@@ -1,5 +1,21 @@
 # Değişiklik Günlüğü
 
+## [2.2.0] - 2026-11-01
+
+### Düzeltmeler
+- Ağaç Analizi'nde fotoğraf + not ekleme butonu alt menünün arkasında kalıyordu. Buton yukarı alındı, başlığa da "Fotoğraf + not ekle" butonu eklendi.
+- Ünite seçmeden ekleme modalı açılınca kayıt yapılamıyordu. Modalın içinde ders/ünite seçimi eklendi.
+- Ağaç Analizi sayfasından çıkınca uygulama koyu temada kalıyordu.
+- Sayfalar gereksiz yere ekran boyundan uzun oluyordu (boş kaydırma).
+- Modallar durum çubuğu / hareket çubuğu altında kalabiliyordu.
+- Ana sayfada bir derse dokununca Oyunlar'da o ders seçili gelmiyordu.
+- Android geri tuşuyla sayfa değişince mobil menü açık kalıyordu.
+
+### İyileştirmeler
+- Ana sayfada ilerleme kartı: level, XP, günlük seri ve sonraki level'a kalan XP.
+- APK boyutu küçüldü: kullanılmayan Supabase kütüphanesi APK'dan çıkarıldı (~270 KB JS).
+- Kalıcı indirme linki: releases/latest/download/ykshunter.apk her zaman son sürümü indirir.
+
 ## [2.1.0] - 2026-11-01
 
 ### Düzeltmeler

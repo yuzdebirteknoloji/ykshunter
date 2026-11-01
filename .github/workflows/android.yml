@@ -107,15 +107,18 @@ jobs:
           if [ "${{ steps.keystore.outputs.signed }}" = "true" ]; then
             ./gradlew --no-daemon assembleRelease
             cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/ykshunter-${APP_VERSION_NAME}.apk"
+            # Sabit isimli kopya: .../releases/latest/download/ykshunter.apk hep son sürümü indirir
+            cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/ykshunter.apk"
           else
             ./gradlew --no-daemon assembleDebug
             cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/ykshunter-${APP_VERSION_NAME}.apk"
+            cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/ykshunter.apk"
           fi
 
       - uses: actions/upload-artifact@v5
         with:
           name: ykshunter-${{ env.APP_VERSION_NAME }}
-          path: ykshunter-*.apk
+          path: ykshunter-${{ env.APP_VERSION_NAME }}.apk
 
       - name: GitHub Release oluştur
         if: env.DO_RELEASE == 'true'
@@ -125,7 +128,9 @@ jobs:
           name: YKS Hunter ${{ env.APP_VERSION_NAME }}
           target_commitish: ${{ github.sha }}
           make_latest: true
-          files: ykshunter-*.apk
+          files: |
+            ykshunter-${{ env.APP_VERSION_NAME }}.apk
+            ykshunter.apk
           generate_release_notes: true
           body: |
             ## 📱 Kurulum

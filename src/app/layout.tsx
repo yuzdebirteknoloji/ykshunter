@@ -84,6 +84,16 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     setMounted(true)
   }, [])
 
+  // Menü açılınca XP/seri bilgisini tazele
+  useEffect(() => {
+    if (menuOpen) fetchMe().then((u) => u && setUser(u))
+  }, [menuOpen])
+
+  // Sayfa değişince mobil menüyü kapat (ör. Android geri tuşu)
+  useEffect(() => {
+    setMenuOpen(false)
+  }, [pathname])
+
   useEffect(() => {
     if (!mounted || isBare) return
 
