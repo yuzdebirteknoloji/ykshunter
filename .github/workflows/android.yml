@@ -64,11 +64,19 @@ jobs:
       # ubuntu-latest'te Android SDK hazır kurulu (ANDROID_HOME); eksik platformları Gradle kendisi indirir.
 
       - name: Sürüm adını belirle
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             echo "APP_VERSION_NAME=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+            echo "DO_RELEASE=true" >> "$GITHUB_ENV"
+          elif [[ "$COMMIT_MSG" == *"[release]"* ]]; then
+            # Commit mesajında [release] varsa mobile/package.json'daki sürümle Release oluşturulur
+            echo "APP_VERSION_NAME=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
+            echo "DO_RELEASE=true" >> "$GITHUB_ENV"
           else
             echo "APP_VERSION_NAME=2.0.0-dev.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+            echo "DO_RELEASE=false" >> "$GITHUB_ENV"
           fi
 
       - run: npm ci
@@ -110,9 +118,13 @@ jobs:
           path: ykshunter-*.apk
 
       - name: GitHub Release oluştur
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: env.DO_RELEASE == 'true'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ env.APP_VERSION_NAME }}
+          name: YKS Hunter ${{ env.APP_VERSION_NAME }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
           files: ykshunter-*.apk
           generate_release_notes: true
           body: |

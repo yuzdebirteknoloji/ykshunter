@@ -55,6 +55,8 @@ git tag v2.0.0
 git push origin v2.0.0
 ```
 
+Alternatif: commit mesajına `[release]` yaz; `mobile/package.json`'daki sürümle (ör. `2.0.0`) Release otomatik oluşturulur. Yeni sürümde önce oradaki `version`'ı artır.
+
 Ya da Actions → **Android APK** → **Run workflow** (APK, çalıştırmanın Artifacts kısmında olur).
 
 Yerelde (Android SDK + JDK 21 gerekir):
