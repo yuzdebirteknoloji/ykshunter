@@ -468,7 +468,7 @@ function UploadModal({ isOpen, onClose, defaultLeaf }: { isOpen: boolean, onClos
                                     </div>
                                 ) : (
                                     <label className="flex flex-col items-center justify-center p-8 cursor-pointer h-[20vh] text-center">
-                                        <input type="file" accept="image/*" capture="environment" onChange={handleFile} className="hidden" />
+                                        <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
                                         <div className="w-12 h-12 bg-white/10 text-white rounded-full flex items-center justify-center mb-3">
                                             <Camera className="w-6 h-6" />
                                         </div>

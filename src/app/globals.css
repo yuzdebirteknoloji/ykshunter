@@ -75,3 +75,38 @@
     text-wrap: balance;
   }
 }
+
+/* ---------- Güvenli alanlar (çentik, durum çubuğu, hareket çubuğu) ----------
+   Android 15+ uygulamayı ekranın kenarına kadar çizer; içerik durum çubuğunun
+   altında kalmasın diye bu boşluklar kullanılır. Capacitor --safe-area-inset-*
+   değişkenlerini de sağlar (SystemBars insetsHandling: 'css'). */
+:root {
+  --sat: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --sab: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+  --sal: max(env(safe-area-inset-left, 0px), var(--safe-area-inset-left, 0px));
+  --sar: max(env(safe-area-inset-right, 0px), var(--safe-area-inset-right, 0px));
+  --bottom-nav-h: 4rem;
+}
+
+@layer utilities {
+  .pt-safe { padding-top: var(--sat); }
+  .pb-safe { padding-bottom: var(--sab); }
+  .px-safe { padding-left: var(--sal); padding-right: var(--sar); }
+  /* Mobilde alt sekme çubuğunun içeriği örtmemesi için */
+  .pb-bottom-nav { padding-bottom: calc(var(--bottom-nav-h) + var(--sab)); }
+  @media (min-width: 768px) {
+    .pb-bottom-nav { padding-bottom: 0; }
+  }
+}
+
+html, body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Mobilde dokunma hedefleri ve metin boyutu */
+@media (max-width: 767px) {
+  input, textarea, select { font-size: 16px; } /* odaklanınca otomatik zoom olmasın */
+}

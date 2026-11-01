@@ -237,7 +237,6 @@ export function useManagementData() {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes - fresh enough
     gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
-    refetchOnMount: false, // Don't refetch on every mount
     refetchOnWindowFocus: false, // Don't refetch on focus
   })
 }

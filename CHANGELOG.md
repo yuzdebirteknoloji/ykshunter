@@ -1,5 +1,21 @@
 # Değişiklik Günlüğü
 
+## [2.1.0] - 2026-11-01
+
+### Düzeltmeler
+- JSON ile eklenen oyunlar uygulama yeniden açılana kadar görünmüyordu (önbellek). Artık hemen görünüyor.
+- Android 15+'ta üst menü durum çubuğunun altında kalıp tıklanamıyordu. Güvenli alan boşlukları eklendi.
+- Ayarlar'da "Kaydet" butonu taşıyordu.
+
+### Yeni
+- Mobil için yeni gezinme: alt sekme çubuğu, büyük hamburger butonu, soldan açılan menü.
+- Toplu İçe Aktar: Sıralama / Eşleştirme / Gruplama için hazır NotebookLM promptları (tek dokunuşla kopyala) ve örnek JSON'lar.
+- NotebookLM cevabındaki ```json işaretleri ve fazladan metinler otomatik temizleniyor; birden fazla JSON aynı anda yapıştırılabiliyor; hatalar anlaşılır Türkçe mesajlarla gösteriliyor.
+- İçe aktarma sonrası "Hemen oyna" butonu.
+- İlk açılışta bir kez gösterilen kullanım rehberi (menüden "Nasıl kullanılır?" ile tekrar açılabilir).
+- Oyunlar listesinde sadece içeriği olan oyun türleri gösteriliyor.
+- Durum çubuğu simgeleri açık/koyu temaya uyuyor.
+
 ## [2.0.0] - 2026-11-01
 
 ### Yeni

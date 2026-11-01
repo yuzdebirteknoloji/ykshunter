@@ -178,7 +178,7 @@ function TopicDetailPageContent() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 mb-6 md:mb-8">
-            {modes.map((mode, index) => (
+            {[...modes].sort((a, b) => Number(b.available) - Number(a.available)).map((mode, index) => (
               <motion.div
                 key={mode.id}
                 initial={{ opacity: 0, y: 20 }}

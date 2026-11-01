@@ -10,6 +10,14 @@ import type { Subject } from '@/lib/supabase'
 import { TopicCardSkeleton } from '@/components/skeleton-loader'
 import { EmptyState } from '@/components/empty-state'
 import { toast } from 'sonner'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+
+const MODE_TAGS: Record<string, { label: string; cls: string }> = {
+  matching: { label: '🔗 Eşleştirme', cls: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' },
+  sequence: { label: '📊 Sıralama', cls: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20' },
+  grouping: { label: '📦 Gruplama', cls: 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20' },
+}
 
 export default function TopicsPage() {
   const router = useRouter()
@@ -20,6 +28,22 @@ export default function TopicsPage() {
   const { data: subjects = [], isLoading: subjectsLoading } = useSubjects()
   const { data: topics = [], isLoading: topicsLoading } = useTopics(selectedSubject?.id || '')
   const createTopicMutation = useCreateTopic()
+
+  // Her konuda hangi oyun türlerinin gerçekten içeriği var?
+  const topicIds = topics.map((t: any) => t.id)
+  const { data: topicModes = {} } = useQuery({
+    queryKey: ['topicModes', ...topicIds],
+    enabled: topicIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from('question_sets').select('topic_id, mode').in('topic_id', topicIds)
+      const map: Record<string, Record<string, number>> = {}
+      for (const row of (data ?? []) as any[]) {
+        map[row.topic_id] ??= {}
+        map[row.topic_id][row.mode] = (map[row.topic_id][row.mode] || 0) + 1
+      }
+      return map
+    },
+  })
   
   const prefetchTopics = usePrefetchTopics()
   const prefetchQuestions = usePrefetchQuestionSets()
@@ -231,15 +255,18 @@ export default function TopicsPage() {
 
                     {/* Game Modes */}
                     <div className="flex flex-wrap items-center gap-2 mb-3 md:mb-4">
-                      <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded text-xs border border-blue-500/20">
-                        🔗 Eşleştirme
-                      </span>
-                      <span className="px-2 py-1 bg-purple-500/10 text-purple-400 rounded text-xs border border-purple-500/20">
-                        📊 Sıralama
-                      </span>
-                      <span className="px-2 py-1 bg-green-500/10 text-green-400 rounded text-xs border border-green-500/20">
-                        📦 Gruplama
-                      </span>
+                      {Object.keys(MODE_TAGS).filter((m) => topicModes[topic.id]?.[m]).length === 0 ? (
+                        <span className="text-xs text-muted-foreground">Henüz oyun eklenmemiş</span>
+                      ) : (
+                        Object.entries(MODE_TAGS)
+                          .filter(([m]) => topicModes[topic.id]?.[m])
+                          .map(([m, t]) => (
+                            <span key={m} className={`px-2 py-1 rounded text-xs border ${t.cls}`}>
+                              {t.label}
+                              {topicModes[topic.id][m] > 1 && ` ×${topicModes[topic.id][m]}`}
+                            </span>
+                          ))
+                      )}
                     </div>
 
                     {/* Play Button */}

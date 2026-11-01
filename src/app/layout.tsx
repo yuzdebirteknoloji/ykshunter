@@ -4,6 +4,9 @@ import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import { QueryProvider } from '@/providers/query-provider'
 import { Sidebar, SidebarBody, SidebarLink } from '@/components/ui/sidebar'
+import { MobileTopBar, MobileDrawer, MobileBottomNav, type NavItem } from '@/components/mobile-nav'
+import { OnboardingTutorial } from '@/components/onboarding-tutorial'
+import { NativeThemeSync } from '@/components/native-theme-sync'
 import { Home, Gamepad2, Settings, User, Moon, Sun, LogOut, LayoutDashboard, NotebookPen, Network, Trophy } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
@@ -50,6 +53,15 @@ const links = [
   },
 ]
 
+// Mobil alt sekme çubuğu (en sık kullanılanlar)
+const mobileTabs: NavItem[] = [
+  { label: 'Ana Sayfa', short: 'Ana Sayfa', href: '/', icon: <Home className="h-5 w-5" /> },
+  { label: 'Oyunlar', short: 'Oyunlar', href: '/games', icon: <Gamepad2 className="h-5 w-5" /> },
+  { label: 'Deneme Analizi', short: 'Deneme', href: '/trial-analysis', icon: <NotebookPen className="h-5 w-5" /> },
+  { label: 'Ağaç Analizi', short: 'Ağaç', href: '/mindmap-analysis', icon: <Network className="h-5 w-5" /> },
+  { label: 'Ayarlar', short: 'Ayarlar', href: '/settings', icon: <Settings className="h-5 w-5" /> },
+]
+
 const adminLink = {
   label: 'Admin Paneli',
   href: '/dashboard',
@@ -63,6 +75,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [open, setOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const { theme, setTheme } = useTheme()
   const pathname = usePathname()
   const isBare = BARE_ROUTES.includes(pathname)
@@ -93,15 +106,16 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   if (isBare) {
-    return <main className="min-h-[100dvh] w-full">{children}</main>
+    return <main className="min-h-[100dvh] w-full pt-safe pb-safe">{children}</main>
   }
 
   // Hydration hatalarını önlemek için mounted kontrolü
   if (!mounted) {
     return (
-      <div className="flex flex-col md:flex-row h-screen w-full overflow-hidden">
-        <div className="w-[60px] border-r border-border" />
-        <main className="flex-1 overflow-auto w-full">
+      <div className="flex flex-col md:flex-row h-[100dvh] w-full overflow-hidden">
+        <div className="hidden md:block w-[60px] border-r border-border" />
+        <div className="md:hidden pt-safe border-b border-border"><div className="h-14" /></div>
+        <main className="flex-1 overflow-auto w-full pb-bottom-nav">
           {children}
         </main>
       </div>
@@ -111,46 +125,40 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const handleThemeToggle = () => {
     if (!mounted) return
     setTheme(theme === 'dark' ? 'light' : 'dark');
-    // Mobilde sidebar'ı kapat
-    if (typeof window !== 'undefined' && window.innerWidth < 768) {
-      setOpen(false);
-    }
   };
+
+  const navLinks = [
+    ...links.filter((l) => !(IS_LOCAL && l.href === '/leaderboard')),
+    ...(user?.role === 'admin' ? [adminLink] : []),
+  ]
+
+  const drawerButton =
+    'w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[15px] font-medium text-muted-foreground active:bg-accent'
 
   return (
     <>
-      <div className="flex flex-col md:flex-row h-screen w-full overflow-hidden">
+      <div className="flex flex-col md:flex-row h-[100dvh] w-full overflow-hidden px-safe">
+        {/* Masaüstü yan menü */}
         <Sidebar open={open} setOpen={setOpen}>
           <SidebarBody className="justify-between gap-10">
             <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
-              {/* Logo */}
               <div className="font-normal flex space-x-2 items-center text-sm text-foreground py-1 relative z-20 mb-8">
                 <div className="h-5 w-6 bg-primary rounded-br-lg rounded-tr-sm rounded-tl-lg rounded-bl-sm flex-shrink-0" />
                 {open && (
-                  <motion.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="font-medium text-foreground whitespace-pre"
-                  >
+                  <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-medium text-foreground whitespace-pre">
                     YKS Hunter
                   </motion.span>
                 )}
               </div>
-
-              {/* Navigation Links */}
               <div className="flex flex-col gap-2">
-                {[...links.filter((l) => !(IS_LOCAL && l.href === '/leaderboard')), ...(user?.role === 'admin' ? [adminLink] : [])].map((link) => (
+                {navLinks.map((link) => (
                   <SidebarLink key={link.href} link={link} />
                 ))}
               </div>
-
-              {/* Announcements */}
               <AnnouncementsDisplay open={open} />
             </div>
 
-            {/* Bottom Section */}
             <div className="flex flex-col gap-2 border-t border-border pt-4">
-              {/* User Info */}
               {user && (
                 <div className={`flex items-center gap-2 py-2 px-2 ${open ? 'mb-2' : ''}`}>
                   <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
@@ -158,9 +166,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                   </div>
                   {open && (
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">
-                        {user.displayName || user.username}
-                      </p>
+                      <p className="text-sm font-medium text-foreground truncate">{user.displayName || user.username}</p>
                       <p className="text-xs text-muted-foreground">
                         Level {user.level || 1} • {user.totalXp || 0} XP
                       </p>
@@ -168,46 +174,85 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                   )}
                 </div>
               )}
-
-              {/* Theme Toggle */}
-              {mounted && (
-                <button
-                  onClick={handleThemeToggle}
-                  className="flex items-center gap-2 py-2 px-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
-                >
-                  {theme === 'dark' ? (
-                    <Sun className="h-5 w-5 flex-shrink-0" />
-                  ) : (
-                    <Moon className="h-5 w-5 flex-shrink-0" />
-                  )}
-                  {open && <span className="text-sm">Tema Değiştir</span>}
-                </button>
-              )}
-
-              {/* Logout Button (APK'da giriş olmadığı için gizli) */}
-              {!IS_LOCAL && (
               <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 py-2 px-2 text-muted-foreground hover:text-red-500 hover:bg-accent rounded-md transition-colors"
+                onClick={handleThemeToggle}
+                className="flex items-center gap-2 py-2 px-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
               >
-                <LogOut className="h-5 w-5 flex-shrink-0" />
-                {open && <span className="text-sm">Çıkış Yap</span>}
+                {theme === 'dark' ? <Sun className="h-5 w-5 flex-shrink-0" /> : <Moon className="h-5 w-5 flex-shrink-0" />}
+                {open && <span className="text-sm">Tema Değiştir</span>}
               </button>
+              {!IS_LOCAL && (
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 py-2 px-2 text-muted-foreground hover:text-red-500 hover:bg-accent rounded-md transition-colors"
+                >
+                  <LogOut className="h-5 w-5 flex-shrink-0" />
+                  {open && <span className="text-sm">Çıkış Yap</span>}
+                </button>
               )}
             </div>
           </SidebarBody>
         </Sidebar>
-        <main className="flex-1 overflow-auto w-full">
-          {children}
-        </main>
+
+        <div className="flex-1 flex flex-col min-w-0 min-h-0">
+          {/* Mobil üst çubuk */}
+          <MobileTopBar onMenu={() => setMenuOpen(true)} />
+          <main className="flex-1 overflow-y-auto overflow-x-hidden w-full pb-bottom-nav">{children}</main>
+        </div>
       </div>
-      {mounted && (
-        <>
-          {!IS_LOCAL && <ServiceWorkerRegister />}
-          {!IS_LOCAL && <PWAUpdatePrompt />}
-          <OfflineIndicator />
-        </>
-      )}
+
+      {/* Mobil menü ve alt sekmeler */}
+      <MobileDrawer
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        items={navLinks}
+        header={
+          user && (
+            <div className="flex items-center gap-3 px-4 py-4 border-b border-border">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                <User className="w-5 h-5 text-white" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-medium truncate">{user.displayName || user.username}</p>
+                <p className="text-xs text-muted-foreground">
+                  Level {user.level || 1} • {user.totalXp || 0} XP • {user.streakDays || 0}🔥
+                </p>
+              </div>
+            </div>
+          )
+        }
+        footer={
+          <>
+            <button
+              onClick={() => {
+                setMenuOpen(false)
+                window.dispatchEvent(new Event('ykshunter:show-tutorial'))
+              }}
+              className={drawerButton}
+            >
+              <span className="h-5 w-5 flex items-center justify-center">❓</span>
+              Nasıl kullanılır?
+            </button>
+            <button onClick={handleThemeToggle} className={drawerButton}>
+              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              {theme === 'dark' ? 'Açık tema' : 'Koyu tema'}
+            </button>
+            {!IS_LOCAL && (
+              <button onClick={handleLogout} className={drawerButton + ' text-red-500'}>
+                <LogOut className="h-5 w-5" />
+                Çıkış Yap
+              </button>
+            )}
+          </>
+        }
+      />
+      <MobileBottomNav items={mobileTabs} />
+
+      <OnboardingTutorial />
+      <NativeThemeSync />
+      {!IS_LOCAL && <ServiceWorkerRegister />}
+      {!IS_LOCAL && <PWAUpdatePrompt />}
+      {!IS_LOCAL && <OfflineIndicator />}
     </>
   )
 }
@@ -259,7 +304,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <LayoutContent>{children}</LayoutContent>
-            <Toaster position="top-right" richColors closeButton />
+            <Toaster position="top-center" richColors closeButton offset={{ top: "calc(var(--sat) + 12px)" }} mobileOffset={{ top: "calc(var(--sat) + 64px)" }} />
           </ThemeProvider>
         </QueryProvider>
       </body>

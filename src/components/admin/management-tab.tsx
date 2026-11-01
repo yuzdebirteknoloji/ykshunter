@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Trash2, Edit2, ChevronDown, ChevronRight, X, Save, Plus, MoveRight, CheckSquare, Square } from 'lucide-react'
 import { supabase, createSubject } from '@/lib/supabase'
+import { notifyContentChanged } from '@/lib/content-events'
 import { toast } from 'sonner'
 import { useManagementSubjects, useManagementTopics, useManagementQuestionSets } from '@/hooks/use-queries'
 import { useQueryClient } from '@tanstack/react-query'
@@ -35,7 +36,7 @@ export function ManagementTab() {
 
   const invalidateCache = () => {
     // Invalidate all management caches
-    queryClient.invalidateQueries({ queryKey: ['management'] })
+    queryClient.invalidateQueries({ queryKey: ['management'] }); notifyContentChanged()
   }
 
   const toggleSubject = (subjectId: string) => {
@@ -722,7 +723,7 @@ function SubjectItem({
       toast.success('Konu başarıyla eklendi')
       setIsAddingTopic(false)
       setNewTopicName('')
-      queryClient.invalidateQueries({ queryKey: ['management'] })
+      queryClient.invalidateQueries({ queryKey: ['management'] }); notifyContentChanged()
     } catch (error: any) {
       console.error('Error creating topic:', error)
       toast.error('Oluşturma başarısız: ' + error.message)
@@ -970,7 +971,7 @@ function TopicItem({
       toast.success(`${selectedItems.size} içerik başarıyla taşındı`)
       setShowBulkMoveDialog(false)
       setSelectedItems(new Set())
-      queryClient.invalidateQueries({ queryKey: ['management'] })
+      queryClient.invalidateQueries({ queryKey: ['management'] }); notifyContentChanged()
     } catch (error: any) {
       console.error('Error bulk moving:', error)
       toast.error('Toplu taşıma başarısız: ' + error.message)
@@ -1210,7 +1211,7 @@ function QuestionSetItem({ set, topicId, onEdit, onDelete, deleting, isSelected,
 
       toast.success('Soru seti taşındı')
       setShowMoveDialog(false)
-      queryClient.invalidateQueries({ queryKey: ['management'] })
+      queryClient.invalidateQueries({ queryKey: ['management'] }); notifyContentChanged()
     } catch (error: any) {
       console.error('Error moving question set:', error)
       toast.error('Taşıma başarısız: ' + error.message)
@@ -1379,7 +1380,7 @@ function ImageGameItem({ game, topicId, onDelete, deleting, isSelected, onToggle
 
       toast.success('Görsel oyun taşındı')
       setShowMoveDialog(false)
-      queryClient.invalidateQueries({ queryKey: ['management'] })
+      queryClient.invalidateQueries({ queryKey: ['management'] }); notifyContentChanged()
     } catch (error: any) {
       console.error('Error moving image game:', error)
       toast.error('Taşıma başarısız: ' + error.message)

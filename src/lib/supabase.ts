@@ -2,6 +2,7 @@ import { createBrowserClient } from '@supabase/ssr'
 import { SUPABASE_URL, SUPABASE_ANON_KEY, isSupabaseConfigured } from './supabase/env'
 import { IS_LOCAL } from './app-mode'
 import { localSupabase } from './local/client'
+import { notifyContentChanged } from './content-events'
 
 // Web: tarayıcı istemcisi, oturum cookie'lerde tutulur ve RLS kuralları
 // giriş yapmış kullanıcıya göre uygulanır.
@@ -285,8 +286,7 @@ export async function createSubject(name: string, icon: string) {
 
   if (error) throw error
 
-  // Invalidate cache
-  dataCache.invalidate('subjects')
+  notifyContentChanged()
 
   return data
 }
@@ -316,8 +316,7 @@ export async function createTopic(subjectId: string, name: string) {
 
   if (error) throw error
 
-  // Invalidate cache
-  dataCache.invalidate(`topics:${subjectId}`)
+  notifyContentChanged()
 
   return data
 }
@@ -354,8 +353,7 @@ export async function createQuestionSet(
 
   if (error) throw error
 
-  // Invalidate cache
-  dataCache.invalidate(`questions:${topicId}`)
+  notifyContentChanged()
 
   return result
 }
@@ -423,12 +421,14 @@ export async function createImageGame(data: {
         console.error('Supabase error:', errorRetry)
         throw errorRetry
       }
+      notifyContentChanged()
       return gameRetry
     }
 
     console.error('Supabase error:', error)
     throw error
   }
+  notifyContentChanged()
   return game
 }
 
@@ -489,6 +489,7 @@ export async function updateImageGame(id: string, updates: Partial<ImageGame>) {
     .single()
 
   if (error) throw error
+  notifyContentChanged()
   return data
 }
 
@@ -499,6 +500,7 @@ export async function deleteImageGame(id: string) {
     .eq('id', id)
 
   if (error) throw error
+  notifyContentChanged()
 }
 
 // ============================================

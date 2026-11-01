@@ -56,7 +56,7 @@ export function ProfileSection() {
   if (!me) return null
 
   return (
-    <div className="bg-card border border-border rounded-xl p-6">
+    <div className="bg-card border border-border rounded-xl p-4 md:p-6">
       <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
         <UserCircle className="w-5 h-5" /> Profil
       </h2>
@@ -82,18 +82,18 @@ export function ProfileSection() {
         )}
         {me.role === 'admin' && !IS_LOCAL && <span className="ml-2 text-xs px-2 py-0.5 rounded bg-primary/10 text-primary">admin</span>}
       </p>
-      <div className="flex gap-2">
+      <div className="flex gap-2 min-w-0">
         <input
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           maxLength={40}
           placeholder="Görünen ad"
-          className="flex-1 px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+          className="flex-1 min-w-0 px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
         />
         <button
           onClick={save}
           disabled={saving}
-          className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium disabled:opacity-50"
+          className="flex-shrink-0 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium disabled:opacity-50"
         >
           Kaydet
         </button>

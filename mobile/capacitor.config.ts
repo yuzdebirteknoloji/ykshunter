@@ -21,10 +21,10 @@ const config: CapacitorConfig = {
       backgroundColor: '#0a0a0a',
       showSpinner: false,
     },
-    StatusBar: {
-      overlaysWebView: false,
-      style: 'DARK',
-      backgroundColor: '#0a0a0a',
+    // Android 15+ uygulamayı kenardan kenara çizer; güvenli alan değerleri
+    // CSS'e --safe-area-inset-* olarak verilir (globals.css'te kullanılıyor).
+    SystemBars: {
+      insetsHandling: 'css',
     },
   },
 }

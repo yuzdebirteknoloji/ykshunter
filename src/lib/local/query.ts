@@ -8,6 +8,7 @@
  */
 import { getDB, newId, type TableName } from './db'
 import { ensureSeeded } from './seed'
+import { notifyContentChanged } from '../content-events'
 
 type Row = Record<string, any>
 type Filter = (row: Row) => boolean
@@ -174,6 +175,8 @@ export class LocalQuery implements PromiseLike<Result> {
           break
         }
       }
+
+      if (this.mode !== 'select') notifyContentChanged()
 
       if (this.mode !== 'select' && !this.returnRows && !this.singleMode) {
         return { data: null, error: null }
