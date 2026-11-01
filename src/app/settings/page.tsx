@@ -5,6 +5,7 @@ import { Download, Smartphone, Wifi, WifiOff, RefreshCw, Trash2, HardDrive, Moni
 import { usePWA } from '@/hooks/use-pwa'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
+import { ProfileSection } from '@/components/profile-section'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -272,8 +273,7 @@ export default function SettingsPage() {
         </motion.div>
 
         <div className="space-y-6">
-        
-
+          <ProfileSection />
 
           {/* Depolama Bilgisi */}
           <motion.div

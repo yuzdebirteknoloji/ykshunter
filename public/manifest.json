@@ -1,25 +1,18 @@
 {
-  "name": "Learn Game - Eğlenerek Öğren",
-  "short_name": "Learn Game",
-  "description": "Gamification ile öğrenme deneyimi",
+  "id": "/",
+  "name": "YKS Hunter",
+  "short_name": "YKS Hunter",
+  "description": "Oyunlaştırılmış YKS hazırlık platformu",
+  "lang": "tr",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#000000",
+  "background_color": "#0a0a0a",
   "theme_color": "#6366f1",
   "orientation": "portrait",
   "icons": [
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

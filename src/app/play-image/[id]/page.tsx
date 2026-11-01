@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft } from 'lucide-react'
 import { getImageGameById, ImageGame, ImageGameRegion, getImageGamesByTopic } from '@/lib/supabase'
+import { saveGameResult } from '@/lib/game-results'
 
 export default function PlayImageGamePage() {
   const params = useParams()
@@ -23,6 +24,12 @@ export default function PlayImageGamePage() {
   const [score, setScore] = useState(0)
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null)
   const [hoveredRegion, setHoveredRegion] = useState<string | null>(null)
+  const startTimeRef = useRef<number>(Date.now())
+
+  // Her yeni görsel oyunda süreyi sıfırla
+  useEffect(() => {
+    startTimeRef.current = Date.now()
+  }, [game?.id])
   
   // Renk paleti
   const colors = [
@@ -403,6 +410,13 @@ export default function PlayImageGamePage() {
 
     setScore(Math.round((correct / game.regions.length) * 100))
     setShowResult(true)
+    saveGameResult({
+      topicId: game.topic_id || game.id,
+      mode: 'image',
+      isCorrect: correct === game.regions.length,
+      mistakes: game.regions.length - correct,
+      timeSpent: Date.now() - startTimeRef.current,
+    })
   }
 
   const handleReset = () => {

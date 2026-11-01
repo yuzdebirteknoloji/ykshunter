@@ -4,15 +4,16 @@ import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import { QueryProvider } from '@/providers/query-provider'
 import { Sidebar, SidebarBody, SidebarLink } from '@/components/ui/sidebar'
-import { Home, Gamepad2, Settings, User, Moon, Sun, LogOut, LayoutDashboard, NotebookPen, Network } from 'lucide-react'
+import { Home, Gamepad2, Settings, User, Moon, Sun, LogOut, LayoutDashboard, NotebookPen, Network, Trophy } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
-import { useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { PWAUpdatePrompt } from '@/components/pwa-update-prompt'
 import { OfflineIndicator } from '@/components/offline-indicator'
 import { AnnouncementsDisplay } from '@/components/announcements-display'
 import { Toaster } from 'sonner'
+import { ServiceWorkerRegister } from '@/components/sw-register'
 
 const links = [
   {
@@ -26,9 +27,9 @@ const links = [
     icon: <Gamepad2 className="text-foreground h-5 w-5 flex-shrink-0" />,
   },
   {
-    label: 'Dashboard',
-    href: '/dashboard',
-    icon: <LayoutDashboard className="text-foreground h-5 w-5 flex-shrink-0" />,
+    label: 'Liderlik',
+    href: '/leaderboard',
+    icon: <Trophy className="text-foreground h-5 w-5 flex-shrink-0" />,
   },
   {
     label: 'Ayarlar',
@@ -47,19 +48,29 @@ const links = [
   },
 ]
 
+const adminLink = {
+  label: 'Admin Paneli',
+  href: '/dashboard',
+  icon: <LayoutDashboard className="text-foreground h-5 w-5 flex-shrink-0" />,
+}
+
+// Bu sayfalarda yan menü gösterilmez
+const BARE_ROUTES = ['/login', '/offline']
+
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [open, setOpen] = useState(false)
   const { theme, setTheme } = useTheme()
-  const router = useRouter()
+  const pathname = usePathname()
+  const isBare = BARE_ROUTES.includes(pathname)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
   useEffect(() => {
-    if (!mounted) return
+    if (!mounted || isBare) return
 
     // Kullanıcı bilgisini al
     fetch('/api/auth/me')
@@ -75,7 +86,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       .catch((error) => {
         console.log('Auth check failed:', error)
       })
-  }, [mounted])
+  }, [mounted, isBare])
 
   const handleLogout = async () => {
     // Mobilde sidebar'ı kapat
@@ -85,11 +96,14 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
     try {
       await fetch('/api/auth/logout', { method: 'POST' })
-      router.push('/login')
-      router.refresh()
+      window.location.href = '/login'
     } catch (err) {
       console.error('Logout error:', err)
     }
+  }
+
+  if (isBare) {
+    return <main className="min-h-[100dvh] w-full">{children}</main>
   }
 
   // Hydration hatalarını önlemek için mounted kontrolü
@@ -128,15 +142,15 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                     animate={{ opacity: 1 }}
                     className="font-medium text-foreground whitespace-pre"
                   >
-                    Learn Game
+                    YKS Hunter
                   </motion.span>
                 )}
               </div>
 
               {/* Navigation Links */}
               <div className="flex flex-col gap-2">
-                {links.map((link, idx) => (
-                  <SidebarLink key={idx} link={link} />
+                {[...links, ...(user?.role === 'admin' ? [adminLink] : [])].map((link) => (
+                  <SidebarLink key={link.href} link={link} />
                 ))}
               </div>
 
@@ -197,6 +211,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       </div>
       {mounted && (
         <>
+          <ServiceWorkerRegister />
           <PWAUpdatePrompt />
           <OfflineIndicator />
         </>
@@ -213,15 +228,15 @@ export default function RootLayout({
   return (
     <html lang="tr" suppressHydrationWarning>
       <head>
-        <title>Learn Game - Eğlenerek Öğren</title>
-        <meta name="description" content="Gamification ile öğrenme deneyimi - Oyunlaştırılmış eğitim platformu" />
+        <title>YKS Hunter</title>
+        <meta name="description" content="Oyunlaştırılmış YKS hazırlık platformu" />
         <meta name="keywords" content="eğitim, oyun, öğrenme, gamification, quiz, sınav" />
-        <meta name="author" content="Learn Game" />
+        <meta name="author" content="YKS Hunter" />
 
         {/* PWA Meta Tags */}
         <link rel="manifest" href="/manifest.json" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="application-name" content="Learn Game" />
+        <meta name="application-name" content="YKS Hunter" />
 
         {/* Icons */}
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
@@ -229,11 +244,10 @@ export default function RootLayout({
         <link rel="icon" href="/icon-512.png" type="image/png" sizes="512x512" />
 
         {/* Apple Touch Icons */}
-        <link rel="apple-touch-icon" href="/icon-192.png" sizes="192x192" />
-        <link rel="apple-touch-icon" href="/icon-512.png" sizes="512x512" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Learn Game" />
+        <meta name="apple-mobile-web-app-title" content="YKS Hunter" />
 
         {/* Theme Colors */}
         <meta name="theme-color" content="#6366f1" media="(prefers-color-scheme: light)" />
@@ -242,9 +256,7 @@ export default function RootLayout({
         {/* Viewport */}
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
 
-        {/* Performance Hints */}
-        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://res.cloudinary.com" />
       </head>
       <body suppressHydrationWarning>
         <QueryProvider>

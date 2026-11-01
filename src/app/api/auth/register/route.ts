@@ -1,96 +1,68 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase'
-import { setUserSession } from '@/lib/auth'
-import bcrypt from 'bcryptjs'
+import { NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
+import { createAdminSupabase, createServerSupabase } from '@/lib/supabase/server'
+import { normalizeUsername, usernameToEmail, USERNAME_REGEX } from '@/lib/auth'
 
-export async function POST(request: NextRequest) {
+function inviteCodeMatches(given: string) {
+  const expected = process.env.INVITE_CODE
+  if (!expected) return false
+  const a = Buffer.from(String(given ?? '').trim())
+  const b = Buffer.from(expected)
+  return a.length === b.length && timingSafeEqual(a, b)
+}
+
+export async function POST(request: Request) {
   try {
-    const { username, password, displayName } = await request.json()
+    const { username, password, displayName, inviteCode } = await request.json()
+    const name = normalizeUsername(username)
 
-    if (!username || !password) {
+    if (!process.env.INVITE_CODE) {
+      return NextResponse.json({ error: 'Kayıt şu an kapalı' }, { status: 403 })
+    }
+    if (!inviteCodeMatches(inviteCode)) {
+      return NextResponse.json({ error: 'Davet kodu geçersiz' }, { status: 403 })
+    }
+    if (!USERNAME_REGEX.test(name)) {
       return NextResponse.json(
-        { error: 'Kullanıcı adı ve şifre gerekli' },
+        { error: 'Kullanıcı adı 3-24 karakter olmalı; sadece küçük harf, rakam, _ ve . içerebilir' },
         { status: 400 }
       )
     }
-
-    if (username.length < 3) {
-      return NextResponse.json(
-        { error: 'Kullanıcı adı en az 3 karakter olmalı' },
-        { status: 400 }
-      )
+    if (typeof password !== 'string' || password.length < 6) {
+      return NextResponse.json({ error: 'Şifre en az 6 karakter olmalı' }, { status: 400 })
     }
 
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: 'Şifre en az 6 karakter olmalı' },
-        { status: 400 }
-      )
-    }
+    const admin = createAdminSupabase()
+    const display = String(displayName || '').trim().slice(0, 40) || name
 
-    const supabase = createClient()
-
-    // Kullanıcı adı kontrolü
-    const { data: existing } = await supabase
-      .from('users')
-      .select('id')
-      .eq('username', username)
-      .single()
-
-    if (existing) {
-      return NextResponse.json(
-        { error: 'Bu kullanıcı adı zaten kullanılıyor' },
-        { status: 409 }
-      )
-    }
-
-    // Şifreyi hash'le
-    const passwordHash = await bcrypt.hash(password, 10)
-
-    // Kullanıcıyı oluştur
-    const { data: user, error } = await supabase
-      .from('users')
-      .insert({
-        username,
-        password_hash: passwordHash,
-        display_name: displayName || username
-      })
-      .select()
-      .single()
-
-    if (error || !user) {
-      return NextResponse.json(
-        { error: 'Kullanıcı oluşturulurken bir hata oluştu' },
-        { status: 500 }
-      )
-    }
-
-    // Session oluştur
-    await setUserSession({
-      id: user.id,
-      username: user.username,
-      displayName: user.display_name,
-      totalXp: user.total_xp || 0,
-      level: user.level || 1,
-      streakDays: user.streak_days || 0
+    // Profil satırı veritabanındaki trigger tarafından otomatik oluşturulur.
+    const { error: createError } = await admin.auth.admin.createUser({
+      email: usernameToEmail(name),
+      password,
+      email_confirm: true,
+      user_metadata: { username: name, display_name: display },
     })
 
-    return NextResponse.json({
-      success: true,
-      user: {
-        id: user.id,
-        username: user.username,
-        displayName: user.display_name,
-        totalXp: user.total_xp || 0,
-        level: user.level || 1,
-        streakDays: user.streak_days || 0
-      }
+    if (createError) {
+      const taken = /already|exists|registered/i.test(createError.message)
+      return NextResponse.json(
+        { error: taken ? 'Bu kullanıcı adı zaten alınmış' : 'Kayıt oluşturulamadı' },
+        { status: taken ? 409 : 500 }
+      )
+    }
+
+    const supabase = await createServerSupabase()
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: usernameToEmail(name),
+      password,
     })
+    if (signInError) {
+      return NextResponse.json({ error: 'Kayıt oldu ama giriş yapılamadı, tekrar deneyin' }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Register error:', error)
-    return NextResponse.json(
-      { error: 'Kayıt olurken bir hata oluştu' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Kayıt olurken bir hata oluştu' }, { status: 500 })
   }
 }

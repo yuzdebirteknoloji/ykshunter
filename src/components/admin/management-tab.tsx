@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Trash2, Edit2, ChevronDown, ChevronRight, X, Save, Plus, MoveRight, CheckSquare, Square } from 'lucide-react'
-import { createClient, createSubject } from '@/lib/supabase'
+import { supabase, createSubject } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useManagementSubjects, useManagementTopics, useManagementQuestionSets } from '@/hooks/use-queries'
 import { useQueryClient } from '@tanstack/react-query'
@@ -65,7 +65,6 @@ export function ManagementTab() {
 
     setDeleting(subjectId)
     try {
-      const supabase = createClient()
       const { error } = await supabase
         .from('subjects')
         .delete()
@@ -90,7 +89,6 @@ export function ManagementTab() {
 
     setDeleting(topicId)
     try {
-      const supabase = createClient()
       const { error } = await supabase
         .from('topics')
         .delete()
@@ -115,7 +113,6 @@ export function ManagementTab() {
 
     setDeleting(setId)
     try {
-      const supabase = createClient()
       const { error } = await supabase
         .from('question_sets')
         .delete()
@@ -140,7 +137,6 @@ export function ManagementTab() {
 
     setDeleting(gameId)
     try {
-      const supabase = createClient()
       const { error } = await supabase
         .from('image_games')
         .delete()
@@ -175,7 +171,6 @@ export function ManagementTab() {
       const parsedData = JSON.parse(editData)
       setSaving(true)
 
-      const supabase = createClient()
       const { error } = await supabase
         .from('question_sets')
         .update({ data: parsedData })
@@ -219,7 +214,6 @@ export function ManagementTab() {
     try {
       setSaving(true)
 
-      const supabase = createClient()
       const { error } = await supabase
         .from('subjects')
         .update({ 
@@ -262,7 +256,6 @@ export function ManagementTab() {
     try {
       setSaving(true)
 
-      const supabase = createClient()
       const { error } = await supabase
         .from('topics')
         .update({ 
@@ -718,7 +711,6 @@ function SubjectItem({
 
     try {
       setCreatingTopic(true)
-      const supabase = createClient()
       const { data, error } = await supabase
         .from('topics')
         .insert({ subject_id: subject.id, name: newTopicName.trim() })
@@ -920,7 +912,6 @@ function TopicItem({
 
   const loadAllTopics = async () => {
     try {
-      const supabase = createClient()
       const { data, error } = await supabase
         .from('topics')
         .select('id, name, subject_id, subjects(name)')
@@ -946,7 +937,6 @@ function TopicItem({
 
     try {
       setBulkMoving(true)
-      const supabase = createClient()
 
       // Separate sets and games
       const setIds = Array.from(selectedItems)
@@ -1191,7 +1181,6 @@ function QuestionSetItem({ set, topicId, onEdit, onDelete, deleting, isSelected,
   // Load all topics when dialog opens
   const loadAllTopics = async () => {
     try {
-      const supabase = createClient()
       const { data, error } = await supabase
         .from('topics')
         .select('id, name, subject_id, subjects(name)')
@@ -1212,7 +1201,6 @@ function QuestionSetItem({ set, topicId, onEdit, onDelete, deleting, isSelected,
 
     try {
       setMoving(true)
-      const supabase = createClient()
       const { error } = await supabase
         .from('question_sets')
         .update({ topic_id: selectedTopic })
@@ -1362,7 +1350,6 @@ function ImageGameItem({ game, topicId, onDelete, deleting, isSelected, onToggle
   // Load all topics when dialog opens
   const loadAllTopics = async () => {
     try {
-      const supabase = createClient()
       const { data, error } = await supabase
         .from('topics')
         .select('id, name, subject_id, subjects(name)')
@@ -1383,7 +1370,6 @@ function ImageGameItem({ game, topicId, onDelete, deleting, isSelected, onToggle
 
     try {
       setMoving(true)
-      const supabase = createClient()
       const { error } = await supabase
         .from('image_games')
         .update({ topic_id: selectedTopic })

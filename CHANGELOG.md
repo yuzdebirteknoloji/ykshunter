@@ -1,4 +1,31 @@
-# 🎮 Oyun Motoru Güncellemesi - v0.2.0
+# Değişiklik Günlüğü
+
+## [2.0.0] - 2026-11-01
+
+### Yeni
+- Çok kullanıcılı sistem: kullanıcı adı + şifre ile giriş, davet kodlu kayıt (Supabase Auth)
+- Liderlik tablosu (haftalık / aylık / tüm zamanlar)
+- Profil bölümü (görünen ad, XP, level, seri)
+- Android uygulaması (Capacitor) ve otomatik APK yayınlama (GitHub Actions)
+- Offline sayfası ve yeni service worker
+- Yeni ikon seti
+
+### Düzeltmeler
+- Oyun sonuçları artık kaydediliyor; XP, level ve seri gerçekten artıyor (görsel oyunlar dahil)
+- Oyunu sıfırlama butonu çöküyordu
+- Build, env değişkenleri olmadan da çalışıyor
+- PWA ikonları bozuktu (gerçek PNG değildi)
+
+### Güvenlik
+- Ortak master şifre ve imzasız oturum cookie'si kaldırıldı
+- Tüm tablolarda RLS: analizler sadece sahibine görünür, içerik sadece admin tarafından değiştirilebilir
+- Eski `users` tablosundaki şifre hash'leri dışarıya kapatıldı
+- Duyuru ve görsel yükleme API'lerine yetki kontrolü, yükleme boyut/tür sınırı
+- Giriş log'larından şifre bilgisi kaldırıldı
+
+---
+
+## 🎮 Oyun Motoru Güncellemesi - v0.2.0
 
 ## 📅 Tarih: 29 Ocak 2026
 

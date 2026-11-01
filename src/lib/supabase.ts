@@ -1,25 +1,9 @@
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
+import { SUPABASE_URL, SUPABASE_ANON_KEY, isSupabaseConfigured } from './supabase/env'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-
-// Check if Supabase is configured
-const isSupabaseConfigured = supabaseUrl && supabaseKey && supabaseUrl !== 'https://placeholder.supabase.co'
-
-// Create client with fallback
-const supabaseClient = isSupabaseConfigured
-  ? createSupabaseClient(supabaseUrl, supabaseKey)
-  : createSupabaseClient('https://placeholder.supabase.co', 'placeholder-key')
-
-export const supabase = supabaseClient
-
-// Export createClient for API routes
-export function createClient() {
-  if (!isSupabaseConfigured) {
-    throw new Error('Supabase is not configured')
-  }
-  return createSupabaseClient(supabaseUrl, supabaseKey)
-}
+// Tarayıcı istemcisi: oturum cookie'lerde tutulur, böylece RLS kuralları
+// giriş yapmış kullanıcıya göre uygulanır.
+export const supabase = createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 // Mock mode check
 const isMockMode = !isSupabaseConfigured
@@ -728,3 +712,25 @@ export async function deleteMindmapAnalysis(id: string) {
   if (error) throw error
 }
 
+
+// ============================================
+// LEADERBOARD
+// ============================================
+
+export interface LeaderboardEntry {
+  user_id: string
+  username: string
+  display_name: string | null
+  level: number
+  total_xp: number
+  period_xp: number
+  streak_days: number
+}
+
+/** days = 7 → haftalık, days = 0 → tüm zamanlar */
+export async function getLeaderboard(days: number = 7): Promise<LeaderboardEntry[]> {
+  if (isMockMode) return []
+  const { data, error } = await supabase.rpc('get_leaderboard', { p_days: days })
+  if (error) throw error
+  return (data ?? []) as LeaderboardEntry[]
+}

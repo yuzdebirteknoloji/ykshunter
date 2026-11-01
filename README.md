@@ -1,213 +1,59 @@
-# 🎮 YKS Flow-Learn - Gamification Öğrenme Platformu
+# 🎯 YKS Hunter
 
-Modern, hızlı ve eğlenceli bir öğrenme deneyimi. YKS'ye hazırlanan öğrenciler için gamification tabanlı etkileşimli öğrenme platformu.
+YKS'ye hazırlanan öğrenciler için oyunlaştırılmış çalışma uygulaması. Web'de (PWA) ve Android uygulaması (APK) olarak çalışır.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/YOUR_USERNAME/YOUR_REPO)
+## Özellikler
 
-## ✨ Özellikler
+- **Oyunlar:** eşleştirme, sıralama, gruplama ve görsel (etiketli şekil / yazı kapatma) oyunları
+- **XP, level ve günlük seri**: her oyun sonucu kaydedilir, XP sunucuda hesaplanır
+- **Liderlik tablosu**: haftalık, aylık, tüm zamanlar
+- **Deneme analizi** ve **ağaç (mindmap) analizi**: her kullanıcıya özel
+- **Admin paneli**: ders/konu/soru seti yönetimi, toplu içe aktarma, görsel oyun editörü, duyurular
+- **Çok kullanıcılı**: kullanıcı adı + şifre ile giriş, davet kodlu kayıt, kişisel verileri koruyan satır bazlı erişim kuralları (RLS)
 
-### 🎯 Oyun Modları
-- **🔗 Eşleştirme**: Terimleri açıklamalarıyla eşleştir
-- **📊 Sıralama**: Adımları doğru sıraya diz
-- **📦 Gruplama**: Öğeleri kategorilere ayır
+## Teknolojiler
 
-### 🎨 Kullanıcı Deneyimi
-- ✅ Modern ve responsive tasarım (mobil uyumlu)
-- ✅ Dark/Light tema desteği
-- ✅ Smooth animasyonlar (Framer Motion)
-- ✅ PWA desteği (offline çalışma)
-- ✅ Ana ekrana eklenebilir
+Next.js 16 (App Router) · React 19 · Supabase (Auth + Postgres + RLS) · TanStack Query · Tailwind · Framer Motion · Cloudinary · Capacitor 8 (Android)
 
-### 📊 Gamification
-- ✅ XP (Experience Points) sistemi
-- ✅ Level sistemi
-- ✅ Streak (günlük seri) takibi
-- ✅ Gerçek zamanlı ilerleme takibi
+## Klasör yapısı
 
-### 🛠️ Admin Panel
-- ✅ Ders ve konu yönetimi
-- ✅ Soru seti oluşturma
-- ✅ JSON ile toplu içe aktarma
-- ✅ NotebookLM entegrasyonu
+```
+src/
+  app/                 sayfalar ve API route'ları
+  components/          arayüz bileşenleri (admin/ altında admin paneli)
+  lib/
+    supabase.ts        tarayıcı istemcisi ve veri fonksiyonları
+    supabase/server.ts sunucu istemcileri (oturumlu + service role)
+    auth.ts            oturum / rol yardımcıları
+  proxy.ts             giriş zorunluluğu, admin koruması, oturum tazeleme
+packages/game-engine/  oyun mantığı
+supabase/migrations/   veritabanı migration'ları (sırayla çalıştır)
+supabase/legacy/       v1'den kalan eski SQL dosyaları (referans)
+mobile/                Capacitor Android projesi
+public/sw.js           service worker (offline desteği)
+```
 
-## 🚀 Hızlı Başlangıç
-
-### Gereksinimler
-- Node.js 18+ 
-- npm 9+
-- Supabase hesabı
-
-### Kurulum
+## Geliştirme
 
 ```bash
-# Projeyi klonla
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
-cd YOUR_REPO
-
-# Bağımlılıkları yükle
 npm install
-
-# Environment variables'ı ayarla
-cp .env.example .env.local
-# .env.local dosyasını düzenle ve Supabase bilgilerini ekle
-
-# Development server'ı başlat
+cp .env.example .env.local   # değerleri doldur
 npm run dev
 ```
 
-Tarayıcıda `http://localhost:3000` adresini aç.
+Kontroller:
 
-## 📁 Proje Yapısı
-
-```
-├── src/
-│   ├── app/                    # Next.js 15 App Router
-│   │   ├── page.tsx           # Ana sayfa
-│   │   ├── layout.tsx         # Root layout (sidebar)
-│   │   ├── admin/             # Admin paneli
-│   │   ├── games/             # Oyunlar listesi
-│   │   ├── topic/[id]/        # Konu detay
-│   │   ├── play/[topicId]/[mode]/  # Oyun ekranı
-│   │   └── api/               # API routes
-│   ├── components/            # React bileşenleri
-│   │   └── ui/               # UI components (sidebar, etc.)
-│   ├── lib/                   # Utilities
-│   │   ├── supabase.ts       # Supabase client & queries
-│   │   ├── auth.ts           # Authentication helpers
-│   │   └── game-engine.ts    # Oyun mantığı wrapper
-│   └── middleware.ts          # Auth middleware
-├── packages/
-│   ├── game-engine/          # Oyun motoru (core logic)
-│   │   └── src/
-│   │       ├── matching.ts   # Eşleştirme oyunu
-│   │       ├── grouping.ts   # Gruplama oyunu
-│   │       └── sorting.ts    # Sıralama oyunu
-│   └── database/             # Database types
-├── public/                    # Static files
-│   ├── manifest.json         # PWA manifest
-│   ├── sw.js                 # Service worker
-│   └── icons/                # App icons
-└── supabase-schema.sql       # Database schema
-```
-
-## 🗄️ Database Setup
-
-1. [Supabase](https://supabase.com) hesabı oluştur
-2. Yeni proje oluştur
-3. SQL Editor'de `supabase-schema.sql` dosyasını çalıştır
-4. Project Settings → API → URL ve anon key'i kopyala
-5. `.env.local` dosyasına ekle
-
-## 🚀 Deployment
-
-### Vercel'e Deploy (Önerilen)
-
-1. GitHub'a push et:
 ```bash
-git add .
-git commit -m "Ready for deployment"
-git push origin main
+npm run type-check
+npm run build
 ```
 
-2. [Vercel Dashboard](https://vercel.com/new)'a git
-3. Repository'yi import et
-4. Environment variables ekle:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-5. Deploy!
+## Yayına alma
 
-Detaylı deployment guide için: [DEPLOYMENT.md](./DEPLOYMENT.md)
+Adım adım rehber: **[docs/YAYINLAMA.md](docs/YAYINLAMA.md)**
 
-## 🎮 Kullanım
-
-### Öğrenci Akışı
-1. Kayıt ol / Giriş yap
-2. Ana sayfadan bir ders seç
-3. Konu seç
-4. Oyun modunu seç
-5. Oyna ve öğren!
-
-### Admin Akışı
-1. `/admin` paneline git
-2. Ders ekle (örn: "AYT Biyoloji")
-3. Konu ekle (örn: "Sinir Sistemi")
-4. Soru setleri ekle:
-   - Manuel ekleme
-   - JSON ile toplu ekleme
-   - NotebookLM ile otomatik oluşturma
-
-### NotebookLM Entegrasyonu
-
-1. NotebookLM'e kaynaklarını yükle
-2. Admin panelde "Toplu İçe Aktar" sekmesine git
-3. Örnek JSON formatını kullan
-4. NotebookLM'den gelen JSON'u yapıştır
-5. İçe aktar!
-
-## 🛠️ Teknolojiler
-
-- **Framework**: Next.js 15 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Animations**: Framer Motion
-- **Database**: Supabase (PostgreSQL)
-- **Auth**: Supabase Auth
-- **State**: Zustand
-- **PWA**: next-pwa
-- **Deployment**: Vercel
-
-## 📱 PWA Features
-
-- ✅ Offline çalışma
-- ✅ Ana ekrana eklenebilir
-- ✅ App-like deneyim
-- ✅ Fast loading
-- ✅ Background sync (gelecekte)
-
-## 🔒 Security
-
-- ✅ Row Level Security (RLS) policies
-- ✅ Secure authentication
-- ✅ Environment variables
-- ✅ HTTPS only
-- ✅ XSS protection
-- ✅ CSRF protection
-
-## 📊 Performance
-
-- ✅ Lighthouse Score: 95+
-- ✅ First Contentful Paint: < 1s
-- ✅ Time to Interactive: < 2s
-- ✅ Code splitting
-- ✅ Image optimization
-- ✅ Edge caching
-
-## 🤝 Contributing
-
-Katkıda bulunmak isterseniz:
-
-1. Fork yapın
-2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. Commit yapın (`git commit -m 'Add amazing feature'`)
-4. Push yapın (`git push origin feature/amazing-feature`)
-5. Pull Request açın
-
-## 📝 License
-
-Bu proje MIT lisansı altında lisanslanmıştır.
-
-## 🙏 Teşekkürler
-
-- [Next.js](https://nextjs.org/)
-- [Supabase](https://supabase.com/)
-- [Vercel](https://vercel.com/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [Framer Motion](https://www.framer.com/motion/)
-
-## 📞 İletişim
-
-Sorularınız için issue açabilirsiniz.
-
----
-
-**Made with ❤️ for YKS students**
+Kısaca:
+1. Supabase SQL Editor'da `supabase/migrations/20261101_auth_rls.sql` dosyasını çalıştır.
+2. Vercel'e env değişkenlerini gir (`.env.example`'daki liste) ve deploy et.
+3. Siteye ilk kaydolan kişi **admin** olur.
+4. `v2.0.0` gibi bir tag at → GitHub Actions APK'yı derleyip Releases'a yükler.
