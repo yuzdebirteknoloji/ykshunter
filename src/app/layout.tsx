@@ -244,8 +244,7 @@ export default function RootLayout({
         <link rel="icon" href="/icon-512.png" type="image/png" sizes="512x512" />
 
         {/* Apple Touch Icons */}
-        <link rel="apple-touch-icon" href="/icon-192.png" sizes="192x192" />
-        <link rel="apple-touch-icon" href="/icon-512.png" sizes="512x512" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="YKS Hunter" />

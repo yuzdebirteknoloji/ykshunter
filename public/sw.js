@@ -3,7 +3,7 @@ const VERSION = 'v2.0.0'
 const STATIC_CACHE = `static-${VERSION}`
 const PAGE_CACHE = `pages-${VERSION}`
 const IMAGE_CACHE = `images-${VERSION}`
-const PRECACHE = ['/offline', '/manifest.json', '/icon-192.png', '/icon-512.png', '/icon.svg']
+const PRECACHE = ['/offline', '/manifest.json', '/icon-192.png', '/icon-512.png', '/icon.svg', '/apple-touch-icon.png']
 const MAX_IMAGES = 150
 
 self.addEventListener('install', (event) => {

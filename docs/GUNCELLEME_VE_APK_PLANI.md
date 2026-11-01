@@ -1,6 +1,6 @@
 # YKS Hunter – Güncelleme ve Android APK Planı
 
-> Hazırlanma: Kasım 2026 · Kapsam: mevcut Next.js uygulamasını güncellemek, çok kullanıcılı hâle getirmek ve arkadaşlara dağıtılabilir bir APK üretmek.
+> Hazırlanma: Kasım 2026 · **Durum: Faz 0–5 uygulandı (v2.0.0).** Yayın adımları için bkz. [YAYINLAMA.md](YAYINLAMA.md).
 
 ## 1. Mevcut Durum (İnceleme Bulguları)
 
