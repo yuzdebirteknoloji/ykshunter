@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Info, AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react'
+import { fetchAnnouncements } from '@/lib/api-client'
 
 interface Announcement {
   id: string
@@ -28,13 +29,7 @@ export function AnnouncementsDisplay({ open }: { open: boolean }) {
 
   const loadAnnouncements = async () => {
     try {
-      const response = await fetch('/api/announcements')
-      if (!response.ok) {
-        console.log('Failed to load announcements')
-        return
-      }
-      const { data } = await response.json()
-      setAnnouncements(data || [])
+      setAnnouncements(await fetchAnnouncements())
     } catch (error) {
       console.log('Error loading announcements:', error)
     }

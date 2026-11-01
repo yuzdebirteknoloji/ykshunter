@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getSubjects, getTrialAnalysesBySubject, createTrialAnalysis, deleteTrialAnalysis, createSubject, Subject } from '@/lib/supabase'
 import { uploadToCloudinary } from '@/lib/cloudinary'
 import { toast } from 'sonner'
+import { fetchMe } from '@/lib/api-client'
 
 export default function TrialAnalysisPage() {
     const [selectedSubject, setSelectedSubject] = useState<string | null>(null)
@@ -343,10 +344,9 @@ function UploadModal({
             if (!selectedFile || !subjectId) throw new Error('Eksik bilgi')
 
             // Kullanıcı IDsini al
-            const authRes = await fetch('/api/auth/me')
-            const authData = await authRes.json()
+            const me = await fetchMe()
 
-            if (!authData.user?.id) {
+            if (!me?.id) {
                 throw new Error('Kullanıcı oturumu bulunamadı')
             }
 
@@ -356,7 +356,7 @@ function UploadModal({
                     subject_id: subjectId,
                     image_url: imageUrl,
                     note,
-                    user_id: authData.user.id
+                    user_id: me.id
                 })
             } catch (err) {
                 console.error('Save Error:', err)

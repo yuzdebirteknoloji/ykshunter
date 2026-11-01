@@ -6,6 +6,8 @@ import { usePWA } from '@/hooks/use-pwa'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { ProfileSection } from '@/components/profile-section'
+import { LocalDataSection } from '@/components/local-data-section'
+import { IS_LOCAL } from '@/lib/app-mode'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -110,7 +112,7 @@ export default function SettingsPage() {
       await Promise.all(names.map((name) => caches.delete(name)))
       setCacheSize(0)
       toast.success('Önbellek başarıyla temizlendi!')
-      setTimeout(() => window.location.reload(), 1000)
+      setTimeout(() => (IS_LOCAL ? window.location.replace('/') : window.location.reload()), 1000)
     }
   }
 
@@ -274,6 +276,7 @@ export default function SettingsPage() {
 
         <div className="space-y-6">
           <ProfileSection />
+          {IS_LOCAL && <LocalDataSection />}
 
           {/* Depolama Bilgisi */}
           <motion.div

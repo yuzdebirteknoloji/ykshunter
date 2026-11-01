@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Plus, Save, Trash2, Info, AlertTriangle, Sparkles, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { fetchAnnouncements, createAnnouncement, deleteAnnouncement } from '@/lib/api-client'
 
 export function AnnouncementsTab() {
   const [announcements, setAnnouncements] = useState<any[]>([])
@@ -22,9 +23,7 @@ export function AnnouncementsTab() {
 
   const loadAnnouncements = async () => {
     try {
-      const response = await fetch('/api/announcements')
-      const { data } = await response.json()
-      setAnnouncements(data || [])
+      setAnnouncements(await fetchAnnouncements())
     } catch (error) {
       console.error('Error:', error)
     }
@@ -32,11 +31,7 @@ export function AnnouncementsTab() {
 
   const handleSubmit = async () => {
     try {
-      await fetch('/api/announcements', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      })
+      await createAnnouncement(formData)
       
       setFormData({ title: '', message: '', type: 'info', priority: 1, isActive: true })
       setShowForm(false)
@@ -49,7 +44,7 @@ export function AnnouncementsTab() {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/announcements?id=${id}`, { method: 'DELETE' })
+      await deleteAnnouncement(id)
       loadAnnouncements()
       toast.success('Duyuru silindi')
     } catch (error) {

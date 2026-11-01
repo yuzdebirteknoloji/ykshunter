@@ -1,4 +1,5 @@
 import { toast } from 'sonner'
+import { IS_LOCAL } from './app-mode'
 
 export interface GameResultPayload {
   topicId: string
@@ -11,6 +12,12 @@ export interface GameResultPayload {
 /** Oyun sonucunu sunucuya gönderir; XP sunucuda hesaplanır. Hata oyunu bozmaz. */
 export async function saveGameResult(payload: GameResultPayload) {
   try {
+    if (IS_LOCAL) {
+      const { recordLocalGameResult } = await import('./local/profile')
+      const data = await recordLocalGameResult(payload)
+      toast.success(`+${data.xpEarned} XP`, { duration: 2000 })
+      return data
+    }
     const res = await fetch('/api/game/result', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

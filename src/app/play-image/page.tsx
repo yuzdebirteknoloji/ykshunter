@@ -1,16 +1,16 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useState, useEffect, useRef, Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft } from 'lucide-react'
 import { getImageGameById, ImageGame, ImageGameRegion, getImageGamesByTopic } from '@/lib/supabase'
 import { saveGameResult } from '@/lib/game-results'
 
-export default function PlayImageGamePage() {
-  const params = useParams()
+function PlayImageGamePageContent() {
+  const searchParams = useSearchParams()
   const router = useRouter()
-  const gameId = params.id as string
+  const gameId = searchParams.get('id') || ''
 
   const [game, setGame] = useState<ImageGame | null>(null)
   const [allGames, setAllGames] = useState<ImageGame[]>([])
@@ -688,5 +688,13 @@ export default function PlayImageGamePage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function PlayImageGamePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-muted-foreground">Yükleniyor...</div>}>
+      <PlayImageGamePageContent />
+    </Suspense>
   )
 }

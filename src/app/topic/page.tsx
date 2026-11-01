@@ -1,16 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Play } from 'lucide-react'
 import { getTopicById, getQuestionSetsByTopic, getImageGames, type QuestionSet, type ImageGame } from '@/lib/supabase'
 import { prefetchTopicQuestions } from '@/lib/prefetch'
 
-export default function TopicDetailPage() {
-  const params = useParams()
+function TopicDetailPageContent() {
+  const searchParams = useSearchParams()
   const router = useRouter()
-  const topicId = params.id as string
+  const topicId = searchParams.get('id') || ''
 
   const [topic, setTopic] = useState<any>(null)
   const [questionSets, setQuestionSets] = useState<QuestionSet[]>([])
@@ -189,9 +189,9 @@ export default function TopicDetailPage() {
                   if (mode.id === 'image' && imageGames.length > 0) {
                     // Rastgele bir görsel oyun seç
                     const randomGame = imageGames[Math.floor(Math.random() * imageGames.length)]
-                    router.push(`/play-image/${randomGame.id}`)
+                    router.push(`/play-image?id=${randomGame.id}`)
                   } else {
-                    router.push(`/play/${topicId}/${mode.id}`)
+                    router.push(`/play?topic=${topicId}&mode=${mode.id}`)
                   }
                 }}
                 className={`group bg-card rounded-lg p-4 md:p-6 border ${mode.borderColor} transition-all ${
@@ -268,5 +268,13 @@ export default function TopicDetailPage() {
         </motion.div>
       </div>
     </div>
+  )
+}
+
+export default function TopicDetailPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-muted-foreground">Yükleniyor...</div>}>
+      <TopicDetailPageContent />
+    </Suspense>
   )
 }

@@ -1,9 +1,13 @@
+// NEXT_PUBLIC_APP_MODE=local → Android APK için tamamen statik (sunucusuz) çıktı
+const isLocalApp = process.env.NEXT_PUBLIC_APP_MODE === 'local'
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
-  output: 'standalone',
+  output: isLocalApp ? 'export' : 'standalone',
+  trailingSlash: isLocalApp,
 
   compiler: {
     removeConsole:
@@ -11,6 +15,7 @@ const nextConfig = {
   },
 
   images: {
+    unoptimized: isLocalApp,
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60 * 60 * 24 * 30,
     remotePatterns: [{ protocol: 'https', hostname: 'res.cloudinary.com' }],
@@ -21,6 +26,7 @@ const nextConfig = {
   },
 
   async headers() {
+    if (isLocalApp) return []
     return [
       {
         source: '/:path*',
@@ -47,5 +53,7 @@ const nextConfig = {
     ]
   },
 }
+
+if (isLocalApp) delete nextConfig.headers
 
 module.exports = nextConfig

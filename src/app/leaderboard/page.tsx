@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Trophy, Flame } from 'lucide-react'
 import { getLeaderboard, type LeaderboardEntry } from '@/lib/supabase'
+import { fetchMe } from '@/lib/api-client'
 
 const PERIODS = [
   { days: 7, label: 'Bu hafta' },
@@ -21,10 +22,7 @@ export default function LeaderboardPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => setMe(d?.user?.id ?? null))
-      .catch(() => {})
+    fetchMe().then((u) => setMe(u?.id ?? null))
   }, [])
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 # 🎯 YKS Hunter
 
-YKS'ye hazırlanan öğrenciler için oyunlaştırılmış çalışma uygulaması. Web'de (PWA) ve Android uygulaması (APK) olarak çalışır.
+YKS'ye hazırlanan öğrenciler için oyunlaştırılmış çalışma uygulaması. Web'de (PWA, çok kullanıcılı) ve **tamamen çevrimdışı Android uygulaması** (APK, veriler telefonda) olarak çalışır.
 
 ## Özellikler
 
@@ -29,7 +29,9 @@ src/
 packages/game-engine/  oyun mantığı
 supabase/migrations/   veritabanı migration'ları (sırayla çalıştır)
 supabase/legacy/       v1'den kalan eski SQL dosyaları (referans)
-mobile/                Capacitor Android projesi
+mobile/                Capacitor Android projesi (content-source/: APK'ya gömülecek içerik)
+src/lib/local/         APK için telefonda çalışan veri katmanı (IndexedDB)
+scripts/               build-mobile (statik derleme), prepare-content (içerik + görseller)
 public/sw.js           service worker (offline desteği)
 ```
 
@@ -56,4 +58,5 @@ Kısaca:
 1. Supabase SQL Editor'da `supabase/migrations/20261101_auth_rls.sql` dosyasını çalıştır.
 2. Vercel'e env değişkenlerini gir (`.env.example`'daki liste) ve deploy et.
 3. Siteye ilk kaydolan kişi **admin** olur.
-4. `v2.0.0` gibi bir tag at → GitHub Actions APK'yı derleyip Releases'a yükler.
+
+APK (çevrimdışı): **[docs/APK_REHBERI.md](docs/APK_REHBERI.md)**. İçeriği `mobile/content-source/` klasörüne koy, `v2.0.0` gibi bir tag at → GitHub Actions APK'yı Releases'a yükler.

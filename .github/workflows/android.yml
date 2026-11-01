@@ -2,9 +2,17 @@ name: Android APK
 
 # v2.1.0 gibi bir tag atıldığında APK derlenip GitHub Releases'a yüklenir.
 # Actions sekmesinden elle de çalıştırılabilir (APK artifact olarak indirilir).
+# Geliştirme branch'lerine push'ta da derlenir (Release oluşturmadan, sadece artifact).
 on:
   push:
     tags: ['v*']
+    branches: ['claude/**']
+    paths:
+      - 'mobile/**'
+      - 'src/**'
+      - 'scripts/**'
+      - 'packages/**'
+      - '.github/workflows/android.yml'
   workflow_dispatch:
 
 permissions:
@@ -14,8 +22,6 @@ jobs:
   apk:
     runs-on: ubuntu-latest
     env:
-      # Repo Settings > Secrets and variables > Actions > Variables: CAP_SERVER_URL
-      CAP_SERVER_URL: ${{ vars.CAP_SERVER_URL || 'https://ykshunter.vercel.app' }}
       APP_VERSION_CODE: ${{ github.run_number }}
     defaults:
       run:
@@ -27,7 +33,27 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: mobile/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            mobile/package-lock.json
+
+      # ---- Web uygulamasını çevrimdışı (statik) derle ----
+      - name: Web bağımlılıkları
+        working-directory: .
+        run: npm ci
+
+      - name: Gömülü içeriği hazırla (görseller indirilir)
+        working-directory: .
+        run: |
+          if ls mobile/content-source/*.json mobile/content-source/*.csv >/dev/null 2>&1; then
+            npm run content:prepare -- mobile/content-source
+          else
+            echo "::warning::mobile/content-source boş, APK içeriksiz başlayacak."
+          fi
+
+      - name: Statik web derlemesi
+        working-directory: .
+        run: npm run build:mobile
 
       - uses: actions/setup-java@v4
         with:
@@ -93,4 +119,5 @@ jobs:
             ## 📱 Kurulum
             1. Aşağıdaki `ykshunter-${{ env.APP_VERSION_NAME }}.apk` dosyasını telefondan indir.
             2. Açarken "Bilinmeyen kaynaklardan yüklemeye izin ver" uyarısı çıkarsa izin ver.
-            3. Uygulamayı aç, davet kodunla kayıt ol.
+            3. Uygulama tamamen çevrimdışı çalışır; veriler sadece telefonda saklanır.
+               **Ayarlar → Verilerim → Yedek al** ile ara sıra yedek al.

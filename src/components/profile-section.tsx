@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { UserCircle, DatabaseBackup } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import { fetchMe, updateDisplayName } from '@/lib/api-client'
+import { IS_LOCAL } from '@/lib/app-mode'
 
 interface Me {
   id: string
@@ -22,27 +24,20 @@ export function ProfileSection() {
   const [claiming, setClaiming] = useState(false)
 
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (d?.user) {
-          setMe(d.user)
-          setDisplayName(d.user.displayName || '')
-        }
-      })
-      .catch(() => {})
+    fetchMe().then((u) => {
+      if (u) {
+        setMe(u)
+        setDisplayName(u.displayName || '')
+      }
+    })
   }, [])
 
   const save = async () => {
     setSaving(true)
-    const res = await fetch('/api/auth/me', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ displayName }),
-    })
+    const res = await updateDisplayName(displayName)
     setSaving(false)
     if (res.ok) toast.success('Görünen ad güncellendi')
-    else toast.error((await res.json().catch(() => ({}))).error || 'Güncellenemedi')
+    else toast.error(res.error || 'Güncellenemedi')
   }
 
   const claimLegacy = async () => {
@@ -80,8 +75,12 @@ export function ProfileSection() {
         </div>
       </div>
       <p className="text-sm text-muted-foreground mb-2">
-        Kullanıcı adı: <span className="font-medium text-foreground">@{me.username}</span>
-        {me.role === 'admin' && <span className="ml-2 text-xs px-2 py-0.5 rounded bg-primary/10 text-primary">admin</span>}
+        {!IS_LOCAL && (
+          <>
+            Kullanıcı adı: <span className="font-medium text-foreground">@{me.username}</span>
+          </>
+        )}
+        {me.role === 'admin' && !IS_LOCAL && <span className="ml-2 text-xs px-2 py-0.5 rounded bg-primary/10 text-primary">admin</span>}
       </p>
       <div className="flex gap-2">
         <input
@@ -100,7 +99,7 @@ export function ProfileSection() {
         </button>
       </div>
 
-      {me.role === 'admin' && (
+      {me.role === 'admin' && !IS_LOCAL && (
         <button
           onClick={claimLegacy}
           disabled={claiming}

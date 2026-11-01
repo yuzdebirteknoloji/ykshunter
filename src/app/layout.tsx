@@ -14,6 +14,8 @@ import { OfflineIndicator } from '@/components/offline-indicator'
 import { AnnouncementsDisplay } from '@/components/announcements-display'
 import { Toaster } from 'sonner'
 import { ServiceWorkerRegister } from '@/components/sw-register'
+import { fetchMe, logout } from '@/lib/api-client'
+import { IS_LOCAL } from '@/lib/app-mode'
 
 const links = [
   {
@@ -73,19 +75,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     if (!mounted || isBare) return
 
     // Kullanıcı bilgisini al
-    fetch('/api/auth/me')
-      .then(res => {
-        if (!res.ok) throw new Error('Auth failed')
-        return res.json()
-      })
-      .then(data => {
-        if (data.user) {
-          setUser(data.user)
-        }
-      })
-      .catch((error) => {
-        console.log('Auth check failed:', error)
-      })
+    fetchMe().then((u) => u && setUser(u))
   }, [mounted, isBare])
 
   const handleLogout = async () => {
@@ -95,7 +85,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      await fetch('/api/auth/logout', { method: 'POST' })
+      await logout()
       window.location.href = '/login'
     } catch (err) {
       console.error('Logout error:', err)
@@ -149,7 +139,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
               {/* Navigation Links */}
               <div className="flex flex-col gap-2">
-                {[...links, ...(user?.role === 'admin' ? [adminLink] : [])].map((link) => (
+                {[...links.filter((l) => !(IS_LOCAL && l.href === '/leaderboard')), ...(user?.role === 'admin' ? [adminLink] : [])].map((link) => (
                   <SidebarLink key={link.href} link={link} />
                 ))}
               </div>
@@ -194,7 +184,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                 </button>
               )}
 
-              {/* Logout Button */}
+              {/* Logout Button (APK'da giriş olmadığı için gizli) */}
+              {!IS_LOCAL && (
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 py-2 px-2 text-muted-foreground hover:text-red-500 hover:bg-accent rounded-md transition-colors"
@@ -202,6 +193,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                 <LogOut className="h-5 w-5 flex-shrink-0" />
                 {open && <span className="text-sm">Çıkış Yap</span>}
               </button>
+              )}
             </div>
           </SidebarBody>
         </Sidebar>
@@ -211,8 +203,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       </div>
       {mounted && (
         <>
-          <ServiceWorkerRegister />
-          <PWAUpdatePrompt />
+          {!IS_LOCAL && <ServiceWorkerRegister />}
+          {!IS_LOCAL && <PWAUpdatePrompt />}
           <OfflineIndicator />
         </>
       )}

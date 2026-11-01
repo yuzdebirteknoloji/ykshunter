@@ -31,3 +31,11 @@ yarn-error.log*
 # Turbo
 .turbo
 tsconfig.tsbuildinfo
+
+# APK derleme çıktıları
+/out
+/.mobile-build-stash
+/mobile/www
+
+# content:prepare çıktısı (CI'da üretilir)
+/mobile/content

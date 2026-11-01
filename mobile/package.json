@@ -2,17 +2,20 @@
   "name": "ykshunter-mobile",
   "version": "2.0.0",
   "private": true,
-  "description": "YKS Hunter Android kabuğu (Capacitor). Canlı web uygulamasını açar.",
+  "description": "YKS Hunter Android uygulaması (Capacitor, tamamen çevrimdışı).",
   "scripts": {
+    "web": "cd .. && npm run build:mobile",
     "sync": "cap sync android",
     "icons": "capacitor-assets generate --android",
-    "apk:debug": "cap sync android && cd android && ./gradlew assembleDebug",
-    "apk:release": "cap sync android && cd android && ./gradlew assembleRelease"
+    "apk:debug": "npm run web && cap sync android && cd android && ./gradlew assembleDebug",
+    "apk:release": "npm run web && cap sync android && cd android && ./gradlew assembleRelease"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",
     "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.6.0",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/share": "^8.0.3",
     "@capacitor/splash-screen": "^8.0.2",
     "@capacitor/status-bar": "^8.0.4"
   },

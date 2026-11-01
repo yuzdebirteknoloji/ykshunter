@@ -220,7 +220,7 @@ export default function TopicsPage() {
                 transition={{ delay: index * 0.05 }}
               >
                 <Link 
-                  href={`/topic/${topic.id}`}
+                  href={`/topic?id=${topic.id}`}
                   onMouseEnter={() => handleTopicHover(topic.id)}
                 >
                   <div className="group bg-card rounded-lg p-4 md:p-6 border border-border hover:border-accent transition-all cursor-pointer h-full">

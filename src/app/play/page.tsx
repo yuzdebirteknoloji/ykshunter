@@ -1,18 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft } from 'lucide-react'
-import { GameEngine, GameState, GameMode } from '../../../../../packages/game-engine/src'
+import { GameEngine, GameState, GameMode } from '../../../packages/game-engine/src'
 import { getQuestionSetsByTopicAndMode, getTopicById, QuestionSet } from '@/lib/supabase'
 import { saveGameResult } from '@/lib/game-results'
 
-export default function PlayPage() {
-  const params = useParams()
+function PlayPageContent() {
+  const searchParams = useSearchParams()
   const router = useRouter()
-  const topicId = params.topicId as string
-  const mode = params.mode as GameMode
+  const topicId = searchParams.get('topic') || ''
+  const mode = (searchParams.get('mode') || 'matching') as GameMode
 
   const [topic, setTopic] = useState<any>(null)
   const [state, setState] = useState<GameState | null>(null)
@@ -101,7 +101,7 @@ export default function PlayPage() {
             Bu konu için {mode} modu henüz eklenmemiş.
           </p>
           <button
-            onClick={() => router.push(`/topic/${topicId}`)}
+            onClick={() => router.push(`/topic?id=${topicId}`)}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90"
           >
             Konuya Dön
@@ -1012,5 +1012,13 @@ function GroupingGameView({ state, setState, showResult, showCorrectAnswers }: a
         </div>
       )}
     </div>
+  )
+}
+
+export default function PlayPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-muted-foreground">Yükleniyor...</div>}>
+      <PlayPageContent />
+    </Suspense>
   )
 }

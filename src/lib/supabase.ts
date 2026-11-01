@@ -1,12 +1,18 @@
 import { createBrowserClient } from '@supabase/ssr'
 import { SUPABASE_URL, SUPABASE_ANON_KEY, isSupabaseConfigured } from './supabase/env'
+import { IS_LOCAL } from './app-mode'
+import { localSupabase } from './local/client'
 
-// Tarayıcı istemcisi: oturum cookie'lerde tutulur, böylece RLS kuralları
+// Web: tarayıcı istemcisi, oturum cookie'lerde tutulur ve RLS kuralları
 // giriş yapmış kullanıcıya göre uygulanır.
-export const supabase = createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+// APK (yerel mod): aynı arayüzü taklit eden, telefondaki IndexedDB'yi kullanan istemci.
+const makeBrowserClient = () => createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+export const supabase: ReturnType<typeof makeBrowserClient> = IS_LOCAL
+  ? (localSupabase as any)
+  : makeBrowserClient()
 
 // Mock mode check
-const isMockMode = !isSupabaseConfigured
+const isMockMode = !IS_LOCAL && !isSupabaseConfigured
 
 if (isMockMode && typeof window !== 'undefined') {
   console.warn('⚠️ Running in MOCK MODE - Supabase not configured')

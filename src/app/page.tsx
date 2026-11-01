@@ -16,6 +16,7 @@ import type { Subject } from '@/lib/supabase'
 import { SubjectCardSkeleton } from '@/components/skeleton-loader'
 import { EmptyState } from '@/components/empty-state'
 import { toast } from 'sonner'
+import { fetchMe } from '@/lib/api-client'
 
 const stats = {
   totalXP: 0,
@@ -39,19 +40,7 @@ export default function HomePage() {
     if (!mounted) return
     
     // Kullanıcı bilgisini al
-    fetch('/api/auth/me')
-      .then(res => {
-        if (!res.ok) throw new Error('Auth failed')
-        return res.json()
-      })
-      .then(data => {
-        if (data.user) {
-          setUser(data.user)
-        }
-      })
-      .catch((error) => {
-        console.log('Auth check failed:', error)
-      })
+    fetchMe().then((u) => u && setUser(u))
   }, [mounted])
   
   useEffect(() => {
