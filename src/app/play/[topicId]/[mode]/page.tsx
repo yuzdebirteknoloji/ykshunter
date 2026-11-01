@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeft } from 'lucide-react'
 import { GameEngine, GameState, GameMode } from '../../../../../packages/game-engine/src'
 import { getQuestionSetsByTopicAndMode, getTopicById, QuestionSet } from '@/lib/supabase'
+import { saveGameResult } from '@/lib/game-results'
 
 export default function PlayPage() {
   const params = useParams()
@@ -114,20 +115,30 @@ export default function PlayPage() {
   const isComplete = GameEngine.isGameComplete(state)
 
   const handleSubmit = () => {
+    if (showResult) return
     const result = GameEngine.getResult(`${topicId}-${mode}`, state)
-    console.log('Game Result:', result)
     setShowResult(true)
+    saveGameResult({
+      topicId,
+      mode,
+      isCorrect: result.isCorrect,
+      mistakes: result.mistakes,
+      timeSpent: result.timeSpent,
+    })
   }
 
   const handleReset = () => {
+    const currentSet = allQuestionSets[currentSetIndex]
+    if (!currentSet) return
     const game = {
       id: `${topicId}-${mode}`,
-      title: topic.title,
+      title: topic.name,
       mode: mode,
-      data: topic.data[mode]
+      data: currentSet.data
     }
-    setState(GameEngine.initializeGame(game as any, true))
+    setState(GameEngine.initializeGame(game as any, currentSet.is_random))
     setShowResult(false)
+    setShowCorrectAnswers(false)
   }
 
   const getModeInfo = () => {

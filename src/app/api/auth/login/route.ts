@@ -1,79 +1,29 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createClient } from '@/lib/supabase'
+import { createServerSupabase } from '@/lib/supabase/server'
+import { normalizeUsername, usernameToEmail, USERNAME_REGEX } from '@/lib/auth'
 
 export async function POST(request: Request) {
   try {
-    const { password } = await request.json()
+    const { username, password } = await request.json()
+    const name = normalizeUsername(username)
 
-    // Master password kontrolü - .env'den al
-    const MASTER_PASSWORD = process.env.MASTER_PASSWORD || 'defaultpassword'
-
-    console.log('Login attempt...')
-    console.log('Provided password length:', password?.length)
-    console.log('Expected password length:', MASTER_PASSWORD?.length)
-    console.log('Expected password (first 2 chars):', MASTER_PASSWORD?.substring(0, 2))
-
-    if (password !== MASTER_PASSWORD) {
-      console.log('❌ Password mismatch')
-      return NextResponse.json(
-        { error: 'Şifre yanlış' },
-        { status: 401 }
-      )
+    if (!USERNAME_REGEX.test(name) || !password) {
+      return NextResponse.json({ error: 'Kullanıcı adı veya şifre hatalı' }, { status: 400 })
     }
 
-    console.log('✅ Password correct. Connecting to Supabase...')
-
-    // Supabase'den ilk kullanıcıyı al (veya default user)
-    const supabase = createClient()
-    const { data: users, error } = await supabase
-      .from('users')
-      .select('*')
-      .limit(1)
-      .single()
+    const supabase = await createServerSupabase()
+    const { error } = await supabase.auth.signInWithPassword({
+      email: usernameToEmail(name),
+      password,
+    })
 
     if (error) {
-      console.error('❌ Supabase Error:', error)
+      return NextResponse.json({ error: 'Kullanıcı adı veya şifre hatalı' }, { status: 401 })
     }
 
-    if (!users) {
-      console.error('❌ No user found in database')
-    }
-
-    if (error || !users) {
-      return NextResponse.json(
-        { error: 'Kullanıcı bulunamadı (Veritabanı boş veya bağlantı hatası)' },
-        { status: 404 }
-      )
-    }
-
-    console.log('✅ User found:', users.username)
-
-    // Session oluştur (lib/auth'daki helper'ı kullanarak)
-    const { setUserSession } = await import('@/lib/auth')
-
-    await setUserSession({
-      id: users.id,
-      username: users.username,
-      displayName: users.display_name,
-      totalXp: users.total_xp || 0,
-      level: users.level || 1,
-      streakDays: users.streak_days || 0
-    })
-
-    return NextResponse.json({
-      success: true,
-      user: {
-        id: users.id,
-        username: users.username,
-        display_name: users.display_name
-      }
-    })
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Login error:', error)
-    return NextResponse.json(
-      { error: 'Giriş başarısız: ' + (error as Error).message },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Giriş yapılamadı' }, { status: 500 })
   }
 }
